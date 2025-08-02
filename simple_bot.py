@@ -13,8 +13,7 @@ from dotenv import load_dotenv
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO, 
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -36,7 +35,7 @@ async def start_handler(message: types.Message) -> None:
     if not message.from_user:
         await message.answer("Hello world, ***Unknown***")
         return
-        
+
     username = message.from_user.username or message.from_user.first_name or "Unknown"
     await message.answer(f"Hello world, ***{username}***")
     logger.info(f"Sent greeting to user: {username}")
