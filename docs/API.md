@@ -55,33 +55,55 @@ async def start_handler(message: types.Message, session: AsyncSession) -> None:
   - `Hello world test deploy 🪏, <b>John Smith</b>`
   - `Hello world test deploy 🪏, <b>User123456789</b>`
 
-**Database Operations**:
+**Service Layer Architecture**:
+
+The bot now uses a modern Service Layer pattern for business logic separation:
 
 ```python
-async def get_or_create_user(session: AsyncSession, telegram_user: types.User) -> User:
-    # 1. Search for existing user by telegram_id
-    stmt = select(User).where(User.telegram_id == telegram_user.id)
-    user = (await session.execute(stmt)).scalar_one_or_none()
+# app/services/user.py
+from app.services.base import BaseService
 
-    if user:
-        # 2. Update existing user info (name changes, etc.)
-        user.username = telegram_user.username
-        user.first_name = telegram_user.first_name
-        user.last_name = telegram_user.last_name
-        user.language_code = telegram_user.language_code
-    else:
-        # 3. Create new user record
-        user = User(
-            telegram_id=telegram_user.id,
-            username=telegram_user.username,
-            first_name=telegram_user.first_name,
-            last_name=telegram_user.last_name,
-            language_code=telegram_user.language_code,
-        )
-        session.add(user)
+class UserService(BaseService):
+    """Service for user-related business logic."""
 
-    await session.commit()
-    return user
+    async def get_or_create_user(self, telegram_user: types.User) -> User:
+        """Get existing user or create new one with caching."""
+        # 1. Check cache first (Redis/memory)
+        cached_user = await self.get_cached_user(telegram_user.id)
+        if cached_user:
+            return cached_user
+
+        # 2. Search database for existing user
+        stmt = select(User).where(User.telegram_id == telegram_user.id)
+        user = (await self.session.execute(stmt)).scalar_one_or_none()
+
+        if user:
+            # 3. Update existing user info
+            user.username = telegram_user.username
+            user.first_name = telegram_user.first_name
+            user.last_name = telegram_user.last_name
+            user.language_code = telegram_user.language_code
+        else:
+            # 4. Create new user record
+            user = User(
+                telegram_id=telegram_user.id,
+                username=telegram_user.username,
+                first_name=telegram_user.first_name,
+                last_name=telegram_user.last_name,
+                language_code=telegram_user.language_code,
+            )
+            self.session.add(user)
+
+        await self.session.commit()
+
+        # 5. Cache the user for future requests
+        await self.cache_user(user)
+
+        return user
+
+# Dependency injection in handlers
+async def start_handler(message: types.Message, user_service: UserService) -> None:
+    user = await user_service.get_or_create_user(message.from_user)
 ```
 
 ### Default Handler
@@ -148,37 +170,49 @@ dp.message.register(start_handler, Command("start"))
 dp.message.register(default_handler)
 ```
 
-### Modern Router Pattern (aiogram 3.0+)
+### Current Router Pattern (aiogram 3.0+) ✅
 
-**Modular Organization with Routers**:
+**Modern Implementation (Currently Used)**:
 
 ```python
 # app/handlers/start.py
 from aiogram import Router
 from aiogram.filters import Command
+from app.services.user import UserService
 
-start_router = Router()
+start_router = Router(name="start")
 
 @start_router.message(Command("start"))
-async def start_handler(message: types.Message, session: AsyncSession) -> None:
-    """Handle /start command using Router pattern."""
+async def start_handler(message: types.Message, user_service: UserService) -> None:
+    """Handle /start command using modern Router + Service Layer pattern."""
     if not message.from_user:
         await message.answer("Hello world, <b>Unknown</b>", parse_mode=ParseMode.HTML)
         return
 
-    user = await get_or_create_user(session, message.from_user)
+    # Use service layer for business logic
+    user = await user_service.get_or_create_user(message.from_user)
     greeting = f"Hello world test deploy 🪏, <b>{user.display_name}</b>"
     await message.answer(greeting, parse_mode=ParseMode.HTML)
 
+# app/handlers/common.py
+from aiogram import Router, F
+
+common_router = Router(name="common")
+
+@common_router.message(F.text)
+async def default_handler(message: types.Message) -> None:
+    """Handle all non-command messages with explicit filter."""
+    await message.answer("Send /start to get a greeting!")
+
 # app/main.py
 def create_dispatcher() -> Dispatcher:
-    """Create dispatcher with Router pattern."""
+    """Create dispatcher with modern Router pattern."""
     dp = Dispatcher()
 
     # Add middleware
     dp.message.middleware(DatabaseMiddleware())
 
-    # Include routers (modern approach)
+    # Include routers (current implementation)
     dp.include_router(start_router)
     dp.include_router(common_router)
 
@@ -432,12 +466,49 @@ async def webhook_handler(request: Request):
     await dp.feed_update(bot, update)
 ```
 
-**Health Check Endpoint**:
+**Enhanced Health Check Endpoint**:
 
 ```python
 @app.get("/health")
-async def health_check():
-    return {"status": "ok", "bot": "healthy"}
+async def enhanced_health_check():
+    """Comprehensive health check with database and bot API status."""
+    checks = {}
+
+    # Database health
+    try:
+        async with AsyncSessionLocal() as session:
+            await session.execute(text("SELECT 1"))
+        checks["database"] = "healthy"
+    except Exception as e:
+        checks["database"] = f"unhealthy: {e}"
+
+    # Bot API health
+    try:
+        bot_info = await bot.get_me()
+        checks["bot_api"] = "healthy"
+    except Exception as e:
+        checks["bot_api"] = f"unhealthy: {e}"
+
+    # Memory usage
+    memory_mb = psutil.Process().memory_info().rss / 1024 / 1024
+    checks["memory_usage_mb"] = round(memory_mb, 2)
+
+    overall_status = "healthy" if all(
+        status == "healthy" for status in checks.values()
+        if isinstance(status, str) and "unhealthy" not in status
+    ) else "unhealthy"
+
+    return {
+        "status": overall_status,
+        "checks": checks,
+        "timestamp": time.time(),
+        "version": "1.0.0"
+    }
+
+@app.get("/metrics")
+async def metrics():
+    """Prometheus metrics endpoint."""
+    return Response(generate_latest(), media_type="text/plain")
 ```
 
 ## Testing Bot Commands

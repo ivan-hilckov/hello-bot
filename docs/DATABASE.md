@@ -49,28 +49,36 @@ erDiagram
 | `created_at`    | `timestamp`    | Auto-generated              | Record creation time            |
 | `updated_at`    | `timestamp`    | Auto-updated                | Last modification time          |
 
-**Model Implementation**:
+**Model Implementation with Optimizations**:
 
 ```python
 class User(Base, TimestampMixin):
-    """Telegram user model."""
+    """Telegram user model with performance optimizations."""
 
     __tablename__ = "users"
 
     # Primary key
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    # Telegram user information
+    # Telegram user information with optimized indexes
     telegram_id: Mapped[int] = mapped_column(
         BigInteger, unique=True, index=True
     )
-    username: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    username: Mapped[str | None] = mapped_column(
+        String(255), nullable=True, index=True  # Indexed for fast lookups
+    )
     first_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     last_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # User state
     is_active: Mapped[bool] = mapped_column(default=True)
     language_code: Mapped[str | None] = mapped_column(String(10), nullable=True)
+
+    # Composite indexes for common query patterns
+    __table_args__ = (
+        Index('ix_user_active_created', 'is_active', 'created_at'),
+        Index('ix_user_telegram_active', 'telegram_id', 'is_active'),
+    )
 
     @property
     def display_name(self) -> str:
@@ -82,6 +90,20 @@ class User(Base, TimestampMixin):
         """Get full name from first_name and last_name."""
         parts = [self.first_name, self.last_name]
         return " ".join(part for part in parts if part)
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for caching."""
+        return {
+            "id": self.id,
+            "telegram_id": self.telegram_id,
+            "username": self.username,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "is_active": self.is_active,
+            "language_code": self.language_code,
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat(),
+        }
 ```
 
 ### Base Model & Mixins
@@ -112,27 +134,66 @@ class TimestampMixin:
 
 ## Database Operations
 
-### User Management
+### Modern Service Layer Operations
 
-**Get or Create User**:
+**UserService with Redis Caching**:
 
 ```python
-async def get_or_create_user(session: AsyncSession, telegram_user: types.User) -> User:
-    """Get existing user or create new one."""
-    # Try to find existing user
-    stmt = select(User).where(User.telegram_id == telegram_user.id)
-    result = await session.execute(stmt)
-    user = result.scalar_one_or_none()
+# app/services/user.py
+from app.services.base import BaseService
+from app.cache import get_cache_manager
 
-    if user:
-        # Update existing user info
+class UserService(BaseService):
+    """Service for user operations with intelligent caching."""
+
+    def __init__(self, session: AsyncSession):
+        super().__init__(session)
+        self.cache = get_cache_manager()
+
+    async def get_or_create_user(self, telegram_user: types.User) -> User:
+        """Get user with Redis caching and database fallback."""
+        telegram_id = telegram_user.id
+
+        # 1. Try cache first (Redis -> Memory fallback)
+        cached_user = await self.cache.get_user(telegram_id)
+        if cached_user:
+            logger.debug("User cache hit", telegram_id=telegram_id)
+            return cached_user
+
+        # 2. Database query with optimized index lookup
+        user = await self._get_user_from_db(telegram_id)
+
+        if user:
+            # 3. Update existing user info
+            user = await self._update_user_info(user, telegram_user)
+        else:
+            # 4. Create new user
+            user = await self._create_new_user(telegram_user)
+
+        # 5. Cache the result for future requests
+        await self.cache.set_user(user, ttl=3600)
+
+        return user
+
+    async def _get_user_from_db(self, telegram_id: int) -> User | None:
+        """Optimized database lookup using index."""
+        stmt = select(User).where(User.telegram_id == telegram_id)
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def _update_user_info(self, user: User, telegram_user: types.User) -> User:
+        """Update user information and commit."""
         user.username = telegram_user.username
         user.first_name = telegram_user.first_name
         user.last_name = telegram_user.last_name
         user.language_code = telegram_user.language_code
-        await session.commit()
-    else:
-        # Create new user
+
+        await self.session.commit()
+        logger.info("User updated", telegram_id=user.telegram_id, username=user.username)
+        return user
+
+    async def _create_new_user(self, telegram_user: types.User) -> User:
+        """Create new user record."""
         user = User(
             telegram_id=telegram_user.id,
             username=telegram_user.username,
@@ -140,11 +201,19 @@ async def get_or_create_user(session: AsyncSession, telegram_user: types.User) -
             last_name=telegram_user.last_name,
             language_code=telegram_user.language_code,
         )
-        session.add(user)
-        await session.commit()
-        await session.refresh(user)
 
-    return user
+        self.session.add(user)
+        await self.session.commit()
+        await self.session.refresh(user)
+
+        logger.info("User created", telegram_id=user.telegram_id, username=user.username)
+        return user
+
+# Usage in handlers with dependency injection
+async def start_handler(message: types.Message, user_service: UserService) -> None:
+    """Handler with injected UserService."""
+    user = await user_service.get_or_create_user(message.from_user)
+    await message.answer(f"Hello, {user.display_name}")
 ```
 
 ## Connection Management
@@ -377,19 +446,63 @@ postgres:
 
 ### Query Optimization
 
-**Indexed Fields**:
+**Enhanced Indexing Strategy**:
 
-- `telegram_id` (unique index for fast lookups)
-- `created_at` (automatic timestamp index)
+```sql
+-- Primary indexes
+CREATE UNIQUE INDEX ix_users_telegram_id ON users (telegram_id);
+CREATE INDEX ix_users_username ON users (username);
 
-**Efficient Queries**:
+-- Composite indexes for common query patterns
+CREATE INDEX ix_user_active_created ON users (is_active, created_at);
+CREATE INDEX ix_user_telegram_active ON users (telegram_id, is_active);
+```
+
+**Optimized Query Patterns**:
 
 ```python
-# Use indexed telegram_id for lookups
+# 1. Fast telegram_id lookup (uses unique index)
 stmt = select(User).where(User.telegram_id == telegram_user.id)
 
-# Avoid N+1 queries (not applicable with single table)
-# Use select() instead of Query API for better performance
+# 2. Active users query (uses composite index)
+stmt = select(User).where(User.is_active == True).order_by(User.created_at.desc())
+
+# 3. Username search (uses username index)
+stmt = select(User).where(User.username.ilike(f"%{search_term}%"))
+
+# 4. Efficient pagination
+stmt = (
+    select(User)
+    .where(User.is_active == True)
+    .order_by(User.created_at.desc())
+    .offset(page * limit)
+    .limit(limit)
+)
+
+# 5. Count queries with indexes
+stmt = select(func.count(User.id)).where(User.is_active == True)
+```
+
+**Redis Cache Integration**:
+
+```python
+# Multi-layer caching strategy
+class UserService:
+    async def get_user_by_telegram_id(self, telegram_id: int) -> User | None:
+        # 1. L1 Cache: Redis (sub-millisecond)
+        cached = await self.cache.get_user(telegram_id)
+        if cached:
+            return cached
+
+        # 2. L2 Cache: Database with index (1-5ms)
+        stmt = select(User).where(User.telegram_id == telegram_id)
+        user = (await self.session.execute(stmt)).scalar_one_or_none()
+
+        # 3. Cache the result
+        if user:
+            await self.cache.set_user(user, ttl=3600)
+
+        return user
 ```
 
 ## Database Administration

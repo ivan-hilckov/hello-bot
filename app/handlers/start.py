@@ -57,7 +57,7 @@ async def start_handler(
     user = await user_service.get_or_create_user(message.from_user)
 
     # Send greeting
-    greeting = f"Hello world test deploy 🪏, <b>{user.display_name}</b>"
+    greeting = f"Hello world test deploy 🪏🪏🪏, <b>{user.display_name}</b>"
     await message.answer(greeting, parse_mode=ParseMode.HTML)
 
     log_user_interaction(

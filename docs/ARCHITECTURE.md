@@ -66,20 +66,28 @@ graph TD
 hello-bot/
 ├── app/                           # Main application code
 │   ├── __init__.py
-│   ├── main.py                   # Application entry point
+│   ├── main.py                   # Application entry point with structured logging
 │   ├── config.py                 # Pydantic settings management
-│   ├── webhook.py                # FastAPI webhook server
+│   ├── webhook.py                # Enhanced FastAPI webhook server
+│   ├── logging.py                # Structured logging configuration
+│   ├── metrics.py                # Prometheus metrics collection
+│   ├── cache.py                  # Redis caching with fallback
+│   ├── container.py              # Dependency injection container
 │   ├── database/                 # Database layer
 │   │   ├── __init__.py
 │   │   ├── base.py              # SQLAlchemy Base + TimestampMixin
 │   │   ├── session.py           # Async session management
 │   │   └── models/              # Database models
 │   │       ├── __init__.py
-│   │       └── user.py          # User model
-│   ├── handlers/                # Message handlers
+│   │       └── user.py          # User model with composite indexes
+│   ├── handlers/                # Modern Router-based handlers
+│   │   ├── __init__.py          # Router exports
+│   │   ├── start.py            # /start command with Router pattern
+│   │   └── common.py           # Default handler with explicit filters
+│   ├── services/                # Service layer (business logic)
 │   │   ├── __init__.py
-│   │   ├── start.py            # /start command handler
-│   │   └── common.py           # Default message handler
+│   │   ├── base.py             # BaseService abstract class
+│   │   └── user.py             # UserService with caching
 │   └── middlewares/             # Bot middlewares
 │       ├── __init__.py
 │       └── database.py         # Database session middleware
@@ -200,22 +208,37 @@ async def correct_pattern():
 
 **Framework:** aiogram 3.0+ with async/await
 
-**Modern Architecture Pattern:**
+**Current Production Architecture:**
 
 ```python
-# Using Router for modular organization (aiogram 3.0+ best practice)
+# Modern Router pattern with Service Layer and Dependency Injection
 from aiogram import Router
+from app.services.user import UserService
 
 # Create router for start commands
-start_router = Router()
+start_router = Router(name="start")
 
 @start_router.message(Command("start"))
-async def start_handler(message: types.Message, session: AsyncSession):
-    user = await get_or_create_user(session, message.from_user)
+async def start_handler(message: types.Message, user_service: UserService):
+    """Handler with automatic service injection."""
+    user = await user_service.get_or_create_user(message.from_user)
     await message.answer(f"Hello, {user.display_name}")
 
-# Include router in dispatcher
+# Include router in dispatcher with DI
 dp.include_router(start_router)
+
+# Service layer handles business logic
+class UserService(BaseService):
+    async def get_or_create_user(self, telegram_user: types.User) -> User:
+        # Redis caching + database operations
+        cached_user = await self.cache.get_user(telegram_user.id)
+        if cached_user:
+            return cached_user
+
+        # Database query with optimized indexes
+        user = await self._get_or_create_from_db(telegram_user)
+        await self.cache.set_user(user)
+        return user
 ```
 
 **Legacy Handler Registration:**
@@ -277,11 +300,245 @@ async def handler_with_custom_dep(message: types.Message, custom_service: MyServ
 
 ### Development Dependencies
 
-| Package            | Purpose                   |
-| ------------------ | ------------------------- |
-| **ruff**           | Code formatting & linting |
-| **pytest**         | Testing framework         |
-| **pytest-asyncio** | Async test support        |
+| Package            | Purpose                       |
+| ------------------ | ----------------------------- |
+| **ruff**           | Code formatting & linting     |
+| **pytest**         | Testing framework             |
+| **pytest-asyncio** | Async test support            |
+| **aiosqlite**      | SQLite async driver for tests |
+
+### Modern Architecture Dependencies
+
+| Package               | Version  | Purpose                     |
+| --------------------- | -------- | --------------------------- |
+| **structlog**         | >=23.2.0 | Structured JSON logging     |
+| **redis**             | >=5.0.0  | Redis caching with fallback |
+| **prometheus-client** | >=0.19.0 | Metrics collection          |
+| **slowapi**           | >=0.1.9  | Rate limiting for FastAPI   |
+| **psutil**            | >=5.9.0  | System resource monitoring  |
+
+## Service Layer Architecture
+
+### Overview
+
+The bot uses a clean Service Layer pattern that separates business logic from handlers:
+
+**Architecture Layers:**
+
+```
+📱 Telegram API
+     ↓
+🤖 aiogram Handlers (presentation layer)
+     ↓ Dependency Injection
+🏢 Service Layer (business logic)
+     ↓ Session management
+🗄️ Database Layer (SQLAlchemy models)
+     ↓ Connection pooling
+🐘 PostgreSQL Database
+```
+
+### Service Layer Implementation
+
+```python
+# app/services/base.py
+from abc import ABC, abstractmethod
+from sqlalchemy.ext.asyncio import AsyncSession
+
+class BaseService(ABC):
+    """Abstract base service with common functionality."""
+
+    def __init__(self, session: AsyncSession, cache: Cache | None = None):
+        self.session = session
+        self.cache = cache or get_default_cache()
+
+    async def commit(self) -> None:
+        """Commit database transaction."""
+        await self.session.commit()
+
+    async def rollback(self) -> None:
+        """Rollback database transaction."""
+        await self.session.rollback()
+
+# app/services/user.py
+class UserService(BaseService):
+    """Service for user-related business logic with caching."""
+
+    async def get_or_create_user(self, telegram_user: types.User) -> User:
+        """Get user with Redis caching and database fallback."""
+        # 1. Try cache first (Redis/memory)
+        cached_user = await self.cache.get_user(telegram_user.id)
+        if cached_user:
+            logger.debug("User cache hit", telegram_id=telegram_user.id)
+            return cached_user
+
+        # 2. Database query with optimized index
+        stmt = select(User).where(User.telegram_id == telegram_user.id)
+        user = (await self.session.execute(stmt)).scalar_one_or_none()
+
+        if user:
+            # Update existing user
+            await self._update_user_info(user, telegram_user)
+        else:
+            # Create new user
+            user = await self._create_new_user(telegram_user)
+
+        # 3. Cache the result
+        await self.cache.set_user(user)
+        return user
+```
+
+### Dependency Injection System
+
+Simple DI container without external dependencies:
+
+```python
+# app/container.py
+from typing import TypeVar, Type, Dict, Any
+
+ServiceType = TypeVar('ServiceType')
+
+class ServiceProvider:
+    """Simple dependency injection container."""
+
+    def __init__(self):
+        self._services: Dict[Type, Any] = {}
+
+    def register(self, interface: Type[ServiceType], implementation: ServiceType):
+        """Register service implementation."""
+        self._services[interface] = implementation
+
+    def get(self, interface: Type[ServiceType]) -> ServiceType:
+        """Get service instance."""
+        return self._services[interface]
+
+# Usage in handlers
+@inject_services
+async def start_handler(message: types.Message, user_service: UserService) -> None:
+    """Handler with automatic service injection."""
+    user = await user_service.get_or_create_user(message.from_user)
+    await message.answer(f"Hello, {user.display_name}")
+```
+
+## Caching & Performance
+
+### Redis Caching with Fallback
+
+The bot implements intelligent caching with Redis primary and memory fallback:
+
+```python
+# app/cache.py
+class CacheManager:
+    """Redis cache with memory fallback for high availability."""
+
+    def __init__(self):
+        self.redis_client = None
+        self.memory_cache = {}  # Fallback cache
+
+    async def get_user(self, telegram_id: int) -> User | None:
+        """Get user from cache with fallback."""
+        try:
+            # Try Redis first
+            if self.redis_client:
+                data = await self.redis_client.get(f"user:{telegram_id}")
+                if data:
+                    return User.model_validate_json(data)
+        except Exception:
+            logger.warning("Redis cache miss, using memory fallback")
+
+        # Fallback to memory cache
+        return self.memory_cache.get(f"user:{telegram_id}")
+
+    async def set_user(self, user: User, ttl: int = 3600) -> None:
+        """Cache user in Redis and memory."""
+        user_data = user.model_dump_json()
+
+        # Store in both Redis and memory
+        try:
+            if self.redis_client:
+                await self.redis_client.setex(
+                    f"user:{user.telegram_id}",
+                    ttl,
+                    user_data
+                )
+        except Exception:
+            pass  # Redis failure is non-critical
+
+        # Always store in memory as fallback
+        self.memory_cache[f"user:{user.telegram_id}"] = user
+```
+
+### Monitoring & Observability
+
+**Structured Logging:**
+
+```python
+# app/logging.py - Production JSON logging
+import structlog
+
+def setup_production_logging():
+    """Configure structured logging for production."""
+    structlog.configure(
+        processors=[
+            structlog.stdlib.filter_by_level,
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.add_log_level,
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.processors.JSONRenderer(),  # JSON format for production
+        ],
+        wrapper_class=structlog.stdlib.BoundLogger,
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        cache_logger_on_first_use=True,
+    )
+
+# Usage in services
+logger = structlog.get_logger()
+logger.info("User created", telegram_id=user.telegram_id, username=user.username)
+```
+
+**Prometheus Metrics:**
+
+```python
+# app/metrics.py
+from prometheus_client import Counter, Histogram, Gauge
+
+# Bot performance metrics
+COMMANDS_TOTAL = Counter('bot_commands_total', 'Total commands', ['command'])
+RESPONSE_TIME = Histogram('bot_response_seconds', 'Response time')
+USERS_ACTIVE = Gauge('bot_users_active', 'Active users count')
+CACHE_HITS = Counter('bot_cache_hits_total', 'Cache hits', ['cache_type'])
+
+# Usage in handlers
+@RESPONSE_TIME.time()
+async def start_handler(message: types.Message, user_service: UserService):
+    COMMANDS_TOTAL.labels(command='start').inc()
+    # handler logic
+
+# Metrics endpoint
+@app.get("/metrics")
+async def metrics():
+    return Response(generate_latest(), media_type="text/plain")
+```
+
+**Enhanced Health Checks:**
+
+```python
+# Comprehensive health monitoring
+@app.get("/health")
+async def health_check():
+    checks = {
+        "database": await _check_database(),
+        "redis": await _check_redis(),
+        "bot_api": await _check_bot_api(),
+        "memory_usage": _get_memory_usage(),
+    }
+
+    overall_status = "healthy" if all(
+        check == "healthy" for check in checks.values()
+        if isinstance(check, str)
+    ) else "unhealthy"
+
+    return {"status": overall_status, "checks": checks}
+```
 
 ## Environment Modes
 

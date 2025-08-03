@@ -31,6 +31,7 @@ nano .env  # or code .env
 ```
 
 **Required in `.env`**:
+
 ```env
 BOT_TOKEN=your_real_token_from_botfather
 DB_PASSWORD=local_password_123
@@ -53,17 +54,70 @@ docker compose down
 ```
 
 **Services Started**:
-- **PostgreSQL**: Database server
-- **Bot**: Telegram bot application (polling mode)
+
+- **PostgreSQL**: Database server with optimized indexes
+- **Redis**: Cache server with memory fallback
+- **Bot**: Modern Telegram bot with enterprise features
+  - Router pattern + Service Layer architecture
+  - Dependency injection system
+  - Prometheus metrics collection
+  - Enhanced health checks with monitoring
 
 ### 4. Verify Setup
 
-1. **Find your bot** in Telegram (search by username)
-2. **Send `/start`** → should respond with personalized greeting
-3. **Check logs**: `docker compose logs bot`
-4. **Check database**: 
+1. **Test Bot Functionality**:
+
+   - Find your bot in Telegram (search by username)
+   - Send `/start` → should respond with personalized greeting
+   - User should be cached for subsequent requests
+
+2. **Check All Services**:
+
    ```bash
-   docker compose exec postgres psql -U hello_user -d hello_bot -c "SELECT * FROM users;"
+   # Verify all containers are running
+   docker compose ps
+
+   # Check application logs
+   docker compose logs bot --tail=20
+   ```
+
+3. **Test Enhanced Health Checks**:
+
+   ```bash
+   # Test health endpoint (if webhook mode)
+   curl http://localhost:8000/health
+
+   # Check Prometheus metrics (if enabled)
+   curl http://localhost:8000/metrics
+   ```
+
+4. **Verify Database with Optimizations**:
+
+   ```bash
+   # Check user creation and indexes
+   docker compose exec postgres psql -U hello_user -d hello_bot -c "
+   SELECT
+     COUNT(*) as total_users,
+     COUNT(*) FILTER (WHERE username IS NOT NULL) as users_with_username
+   FROM users;
+   "
+
+   # Verify indexes exist
+   docker compose exec postgres psql -U hello_user -d hello_bot -c "
+   SELECT indexname, indexdef
+   FROM pg_indexes
+   WHERE tablename = 'users';
+   "
+   ```
+
+5. **Test Redis Cache**:
+
+   ```bash
+   # Check Redis connectivity
+   docker compose exec redis redis-cli ping
+
+   # Monitor cache usage
+   docker compose exec redis redis-cli info memory | grep used_memory_human
    ```
 
 ## Alternative: Local Python Development
@@ -162,13 +216,73 @@ docker compose logs -f postgres
 
 ## Development vs Production
 
-| Feature | Development | Production |
-|---------|-------------|------------|
-| **Mode** | Polling (bot asks Telegram for updates) | Webhook (Telegram sends updates to bot) |
-| **Database** | Local PostgreSQL container | Remote PostgreSQL on VPS |
-| **Logging** | DEBUG level, SQL queries visible | INFO level, optimized |
-| **Hot Reload** | Manual restart required | Not applicable |
-| **Resource Limits** | None | Memory/CPU limits for 2GB VPS |
+| Feature             | Development                             | Production                              |
+| ------------------- | --------------------------------------- | --------------------------------------- |
+| **Mode**            | Polling (bot asks Telegram for updates) | Webhook (Telegram sends updates to bot) |
+| **Database**        | Local PostgreSQL container with indexes | Remote PostgreSQL on VPS (optimized)    |
+| **Caching**         | Redis + memory fallback (same as prod)  | Redis + memory fallback                 |
+| **Logging**         | Human-readable format, DEBUG level      | JSON format, INFO level                 |
+| **Metrics**         | Available but not mandatory             | Prometheus metrics enabled              |
+| **Health Checks**   | Basic checks                            | Enhanced multi-service monitoring       |
+| **Service Layer**   | Full DI + Service Layer (same as prod)  | Full DI + Service Layer                 |
+| **Resource Limits** | None                                    | Memory/CPU limits for 2GB VPS           |
+| **Testing**         | 12 comprehensive tests available        | Tested before deployment                |
+
+## Testing Infrastructure
+
+The bot now includes comprehensive testing suite:
+
+### Running Tests
+
+```bash
+# Run all tests
+uv run pytest
+
+# Run tests with coverage
+uv run pytest --cov=app
+
+# Run specific test file
+uv run pytest tests/test_services.py
+
+# Run with verbose output
+uv run pytest -v
+```
+
+### Test Structure
+
+```bash
+tests/
+├── conftest.py          # Test fixtures and setup
+├── test_handlers.py     # Handler testing (4 tests)
+├── test_services.py     # Service layer testing (4 tests)
+└── test_webhook.py      # FastAPI webhook testing (4 tests)
+```
+
+### Test Features
+
+- **SQLite in-memory database** for fast isolated tests
+- **Mock Telegram objects** for handler testing
+- **Async test support** with pytest-asyncio
+- **Service layer testing** with dependency injection
+- **FastAPI client testing** for webhook endpoints
+
+### Test Examples
+
+```bash
+# Test output example
+================================ test session starts ================================
+collected 12 items
+
+tests/test_handlers.py::test_start_handler_success ✓
+tests/test_handlers.py::test_start_handler_no_user ✓
+tests/test_services.py::test_get_or_create_user_new ✓
+tests/test_services.py::test_get_or_create_user_existing ✓
+tests/test_webhook.py::test_health_check ✓
+tests/test_webhook.py::test_metrics_endpoint ✓
+...
+
+================================ 12 passed in 2.34s ================================
+```
 
 ## Troubleshooting
 
@@ -243,6 +357,7 @@ asyncio.run(test())
 ### VS Code Setup
 
 **`.vscode/settings.json`**:
+
 ```json
 {
   "python.defaultInterpreterPath": "./.venv/bin/python",
@@ -253,6 +368,7 @@ asyncio.run(test())
 ```
 
 **Recommended Extensions**:
+
 - Python
 - Docker
 - PostgreSQL
@@ -261,6 +377,7 @@ asyncio.run(test())
 ### Environment Variables
 
 **Development `.env`**:
+
 ```env
 # Required
 BOT_TOKEN=your_telegram_bot_token
@@ -322,14 +439,14 @@ df -h    # Disk usage
 ```bash
 # Database connection info
 docker compose exec postgres psql -U hello_user -d hello_bot -c "
-SELECT count(*) as active_connections 
-FROM pg_stat_activity 
+SELECT count(*) as active_connections
+FROM pg_stat_activity
 WHERE state = 'active';
 "
 
 # Table statistics
 docker compose exec postgres psql -U hello_user -d hello_bot -c "
-SELECT schemaname, tablename, n_tup_ins, n_tup_upd 
+SELECT schemaname, tablename, n_tup_ins, n_tup_upd
 FROM pg_stat_user_tables;
 "
 ```

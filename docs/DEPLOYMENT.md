@@ -104,16 +104,35 @@ git push origin main
 **Services on VPS**:
 
 ```yaml
-postgres: # PostgreSQL database
+postgres: # PostgreSQL database with optimized indexes
+redis: # Redis cache with memory fallback
 migration: # One-time database migration
-bot: # Telegram bot application
+bot: # Modern Telegram bot with full enterprise features
 ```
+
+**Enterprise Features Deployed**:
+
+- ✅ **Router Pattern**: Modern aiogram 3.0+ architecture
+- ✅ **Service Layer**: Separated business logic with dependency injection
+- ✅ **Redis Caching**: High-performance user data caching
+- ✅ **Prometheus Metrics**: `/metrics` endpoint for monitoring
+- ✅ **Enhanced Health Checks**: Database, Redis, Bot API monitoring
+- ✅ **Structured Logging**: JSON logs for production
+- ✅ **Rate Limiting**: Protection against abuse
+- ✅ **Testing Suite**: 12 comprehensive tests
 
 **Resource Allocation** (2GB VPS):
 
-- **PostgreSQL**: 512MB memory limit
-- **Bot App**: 256MB memory limit
-- **System**: ~1GB for OS + Docker
+- **PostgreSQL**: 512MB memory limit (with optimized indexes)
+- **Redis**: 128MB memory limit (caching layer)
+- **Bot App**: 256MB memory limit (with Service Layer + DI)
+- **System**: ~1GB for OS + Docker overhead
+
+**Memory Usage Monitoring**:
+
+- **Prometheus Metrics**: Real-time memory tracking via `/metrics`
+- **Health Checks**: Memory usage included in `/health` endpoint
+- **Structured Logging**: Memory consumption logged in JSON format
 
 ## Monitoring & Maintenance
 
@@ -132,25 +151,62 @@ docker compose logs -f
 docker compose logs bot --tail=50
 ```
 
-### Health Checks
+### Enhanced Health Checks
 
-**Automated Health Checks**:
+**Comprehensive Automated Monitoring**:
 
-- **PostgreSQL**: `pg_isready` every 5 seconds
-- **Bot**: Configuration validation every 5 seconds
-- **Webhook**: `/health` endpoint (if webhook mode enabled)
+- **PostgreSQL**: Database connectivity + query performance
+- **Redis**: Cache connectivity with fallback testing
+- **Bot API**: Telegram API connectivity via `getMe()`
+- **Memory Usage**: Real-time memory consumption tracking
+- **Response Time**: Request processing latency monitoring
+
+**Health Check Endpoints**:
+
+```bash
+# Enhanced health check with full status
+curl http://localhost:8000/health
+# Response:
+{
+  "status": "healthy",
+  "checks": {
+    "database": "healthy",
+    "redis": "healthy",
+    "bot_api": "healthy",
+    "memory_usage_mb": 245.6
+  },
+  "timestamp": 1703234567.89,
+  "version": "1.0.0"
+}
+
+# Prometheus metrics
+curl http://localhost:8000/metrics
+# Returns metrics in Prometheus format
+```
 
 **Manual Verification**:
 
 ```bash
-# Test bot in Telegram
-# Send /start → should respond with greeting
+# Test bot functionality
+# Send /start → should respond with greeting + user cached
 
-# Check database
-docker compose exec postgres psql -U hello_user -d hello_bot -c "SELECT COUNT(*) FROM users;"
-
-# Check container health
+# Check all services
 docker compose ps
+docker compose logs -f bot | grep "healthy"
+
+# Check database with indexes
+docker compose exec postgres psql -U hello_user -d hello_bot -c "
+SELECT
+  COUNT(*) as total_users,
+  COUNT(*) FILTER (WHERE is_active = true) as active_users
+FROM users;
+"
+
+# Check Redis cache
+docker compose exec redis redis-cli ping
+docker compose exec redis redis-cli info memory
+
+# Resource monitoring
 docker stats --no-stream
 ```
 
