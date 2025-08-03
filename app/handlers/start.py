@@ -44,10 +44,10 @@ async def start_handler(
 
     Example:
         User sends: /start
-        Bot responds: "Hello world test deploy 🪏, <b>@username</b>"
+        Bot responds: "Hello! Welcome to the bot, <b>@username</b>"
     """
     if not message.from_user:
-        await message.answer("Hello world, <b>Unknown</b>", parse_mode=ParseMode.HTML)
+        await message.answer("Hello! Welcome to the bot, <b>Unknown</b>", parse_mode=ParseMode.HTML)
         return
 
     # Track command usage
@@ -57,7 +57,7 @@ async def start_handler(
     user = await user_service.get_or_create_user(message.from_user)
 
     # Send greeting
-    greeting = f"Hello world test deploy 🪏🪏🪏, <b>{user.display_name}</b>"
+    greeting = f"Hello! Welcome to the bot, <b>{user.display_name}</b>"
     await message.answer(greeting, parse_mode=ParseMode.HTML)
 
     log_user_interaction(

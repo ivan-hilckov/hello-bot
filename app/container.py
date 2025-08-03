@@ -1,5 +1,5 @@
 """
-Dependency injection container for Hello Bot.
+Dependency injection container for Telegram Bot.
 Simple DI implementation without external dependencies.
 """
 

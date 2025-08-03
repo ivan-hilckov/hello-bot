@@ -1,4 +1,4 @@
-name: Deploy Hello Bot to VPS
+name: Deploy Telegram Bot to VPS
 
 on:
   push:
@@ -16,7 +16,7 @@ on:
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/hello-bot
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}
 
 jobs:
   # Test and lint code
@@ -145,7 +145,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
           source: "deploy/*"
-          target: "/tmp/hello-bot-deploy"
+          target: "/tmp/${{ github.event.repository.name }}-deploy"
           strip_components: 1
 
       - name: Deploy to VPS
@@ -165,7 +165,7 @@ jobs:
           envs: BOT_TOKEN,DB_PASSWORD,ENVIRONMENT,BOT_IMAGE,WEBHOOK_URL,WEBHOOK_SECRET_TOKEN
           script: |
             # Run centralized production deployment script
-            cd /tmp/hello-bot-deploy
+            cd /tmp/${{ github.event.repository.name }}-deploy
             ./scripts/deploy_production.sh
 
       - name: Verify deployment
@@ -178,7 +178,7 @@ jobs:
           script: |
             # Final verification - check if bot responds to Telegram
             echo "🔍 Final deployment verification..."
-            cd $HOME/hello-bot
+            cd $HOME/${{ github.event.repository.name }}
 
             if docker compose --profile production exec -T bot python -c "from app.config import settings; print('✅ Bot is healthy and ready')"; then
               echo "✅ Deployment verification successful!"

@@ -33,7 +33,7 @@ logger = structlog.get_logger(__name__)
 def create_webhook_app(bot: Bot, dp: Dispatcher) -> FastAPI:
     """Create FastAPI application for webhook handling."""
     app = FastAPI(
-        title="Hello Bot Webhook",
+        title="Telegram Bot Webhook",
         description="Telegram Bot Webhook Server",
         version="1.1.0",
         docs_url=None if settings.is_production else "/docs",

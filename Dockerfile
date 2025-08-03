@@ -1,4 +1,4 @@
-# Optimized Dockerfile for Hello Bot using uv with enhanced caching
+# Optimized Dockerfile for Telegram Bot Template using uv with enhanced caching
 FROM ghcr.io/astral-sh/uv:python3.12-alpine AS builder
 
 # Install system dependencies for building
@@ -56,8 +56,8 @@ HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --start-interval=2s --
   CMD python -c "import asyncio; from app.config import settings; exit(0 if settings.bot_token else 1)"
 
 # Labels for metadata
-LABEL org.opencontainers.image.title="Hello Bot"
-LABEL org.opencontainers.image.description="Minimal Telegram bot for deployment testing"
+LABEL org.opencontainers.image.title="Telegram Bot Template"
+LABEL org.opencontainers.image.description="Production-ready Telegram bot template with PostgreSQL and Docker"
 LABEL org.opencontainers.image.version="1.1.0"
 
 # Start the bot (migrations run separately)

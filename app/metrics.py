@@ -1,5 +1,5 @@
 """
-Prometheus metrics collection for Hello Bot.
+Prometheus metrics collection for Telegram Bot.
 """
 
 import time

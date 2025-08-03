@@ -1,4 +1,4 @@
-# Comprehensive .dockerignore for Hello Bot
+# Comprehensive .dockerignore for Telegram Bot Template
 # Exclude files to optimize build context and improve caching
 
 # Git files

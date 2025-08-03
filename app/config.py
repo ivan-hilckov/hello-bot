@@ -18,7 +18,7 @@ class Settings(BaseSettings):
 
     # Database configuration
     database_url: str = Field(
-        default="postgresql+asyncpg://hello_user:password@localhost:5432/hello_bot",
+        default="postgresql+asyncpg://telegram_user:password@localhost:5432/telegram_bot",
         description="Database connection URL",
     )
     # Optimized for 2GB VPS (reduced from defaults)

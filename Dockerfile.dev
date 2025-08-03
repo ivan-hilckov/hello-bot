@@ -1,4 +1,4 @@
-# Development Docker image for Hello Bot with hot reloading
+# Development Docker image for Telegram Bot Template with hot reloading
 FROM python:3.11-slim
 
 # Install system dependencies

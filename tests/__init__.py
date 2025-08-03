@@ -1,3 +1,3 @@
 """
-Test suite for Hello Bot.
+Test suite for Telegram Bot.
 """

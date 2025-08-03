@@ -1,5 +1,5 @@
 """
-Redis caching implementation for Hello Bot.
+Redis caching implementation for Telegram Bot.
 """
 
 import pickle

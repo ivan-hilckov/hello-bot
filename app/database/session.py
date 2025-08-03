@@ -27,7 +27,7 @@ engine = create_async_engine(
         "command_timeout": 30,  # Query timeout
         "server_settings": {
             "jit": "off",  # Disable JIT for 2GB VPS
-            "application_name": "hello_bot",
+            "application_name": "telegram_bot",
         },
     },
 )

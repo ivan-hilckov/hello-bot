@@ -1,14 +1,14 @@
-# Production Docker Compose for Hello Bot
+# Production Docker Compose for Telegram Bot Template
 # For development, use: docker compose -f docker-compose.dev.yml up
 
 services:
   # Database Migration Service (runs before app startup)
   migration:
     image: ${BOT_IMAGE}
-    container_name: hello_bot_migration
+    container_name: ${PROJECT_NAME:-telegram_bot}_migration
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://hello_user:${DB_PASSWORD}@postgres:5432/hello_bot
+      DATABASE_URL: postgresql+asyncpg://${DB_USER:-telegram_user}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-telegram_bot}
     command: [ "alembic", "upgrade", "head" ]
     depends_on:
       postgres:
@@ -22,10 +22,10 @@ services:
   # PostgreSQL Database (Optimized for 2GB RAM VPS)
   postgres:
     image: postgres:15-alpine
-    container_name: hello_bot_postgres
+    container_name: ${PROJECT_NAME:-telegram_bot}_postgres
     environment:
-      POSTGRES_DB: hello_bot
-      POSTGRES_USER: hello_user
+      POSTGRES_DB: ${DB_NAME:-telegram_bot}
+      POSTGRES_USER: ${DB_USER:-telegram_user}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
       # Memory optimizations for 2GB RAM VPS
@@ -49,7 +49,7 @@ services:
         reservations:
           memory: 256M
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U hello_user -d hello_bot" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-telegram_user} -d ${DB_NAME:-telegram_bot}" ]
       interval: 5s
       timeout: 3s
       retries: 12
@@ -65,11 +65,11 @@ services:
   # Telegram Bot Application (Production)
   bot:
     image: ${BOT_IMAGE}
-    container_name: hello_bot_app
+    container_name: ${PROJECT_NAME:-telegram_bot}_app
     env_file: .env
     environment:
       # Database configuration
-      DATABASE_URL: postgresql+asyncpg://hello_user:${DB_PASSWORD}@postgres:5432/hello_bot
+      DATABASE_URL: postgresql+asyncpg://${DB_USER:-telegram_user}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-telegram_bot}
 
       # Bot configuration
       BOT_TOKEN: ${BOT_TOKEN}
@@ -109,7 +109,7 @@ services:
           memory: 128M
     restart: unless-stopped
     networks:
-      - hello_bot_network
+      - ${PROJECT_NAME:-telegram_bot}_network
     # Health check for the bot application
     healthcheck:
       test: [ "CMD", "python", "-c", "from app.config import settings; exit(0 if settings.bot_token else 1)" ]
@@ -123,9 +123,9 @@ services:
 
 volumes:
   postgres_data:
-    name: hello_bot_postgres_data
+    name: ${PROJECT_NAME:-telegram_bot}_postgres_data
 
 networks:
-  hello_bot_network:
-    name: hello_bot_network
+  ${PROJECT_NAME:-telegram_bot}_network:
+    name: ${PROJECT_NAME:-telegram_bot}_network
     driver: bridge

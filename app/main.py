@@ -44,7 +44,7 @@ async def lifespan() -> AsyncGenerator[None, None]:
         # Startup
         log_system_event(
             logger,
-            "Starting Hello Bot application",
+            "Starting Telegram Bot application",
             component="main",
             environment=settings.environment,
             debug_mode=settings.debug,
@@ -87,7 +87,7 @@ async def lifespan() -> AsyncGenerator[None, None]:
     finally:
         # Shutdown
         log_system_event(
-            logger, "Shutting down Hello Bot application", component="main", status="shutdown"
+            logger, "Shutting down Telegram Bot application", component="main", status="shutdown"
         )
 
         # Close cache service

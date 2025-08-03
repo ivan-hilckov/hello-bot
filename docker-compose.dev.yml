@@ -1,4 +1,4 @@
-# Development Docker Compose for Hello Bot
+# Development Docker Compose for Telegram Bot Template
 # Use: docker compose -f docker-compose.dev.yml up
 
 services:
