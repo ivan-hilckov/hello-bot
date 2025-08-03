@@ -57,6 +57,12 @@ services:
       DEBUG: ${DEBUG:-false}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       
+      # Webhook configuration
+      WEBHOOK_URL: ${WEBHOOK_URL}
+      WEBHOOK_SECRET_TOKEN: ${WEBHOOK_SECRET_TOKEN}
+      WEBHOOK_HOST: "0.0.0.0"
+      WEBHOOK_PORT: "8000"
+      
       # Optimized performance settings for 2GB RAM
       DB_POOL_SIZE: ${DB_POOL_SIZE:-3}
       DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-5}
@@ -65,6 +71,8 @@ services:
       PYTHONOPTIMIZE: "1"
       PYTHONDONTWRITEBYTECODE: "1"
       PYTHONUNBUFFERED: "1"
+    ports:
+      - "${WEBHOOK_PORT:-8000}:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -78,9 +86,9 @@ services:
     restart: unless-stopped
     networks:
       - hello_bot_network
-    # Health check for the bot
+    # Health check for the bot webhook server
     healthcheck:
-      test: ["CMD", "python", "-c", "from app.config import settings; exit(0 if settings.bot_token else 1)"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health", "||", "exit", "1"]
       interval: 60s
       timeout: 15s
       retries: 3

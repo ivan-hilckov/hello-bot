@@ -22,6 +22,10 @@ dependencies = [
     "asyncpg>=0.29.0",
     "alembic>=1.13.0",
     
+    # Web server for webhooks
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    
     # Performance optimizations for 2GB RAM
     "uvloop>=0.19.0; sys_platform != 'win32'",  # Faster async event loop
 ]

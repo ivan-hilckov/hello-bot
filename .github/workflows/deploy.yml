@@ -178,12 +178,14 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           ENVIRONMENT: ${{ github.event.inputs.environment || 'production' }}
           BOT_IMAGE: ghcr.io/${{ github.repository }}:latest
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+          WEBHOOK_SECRET_TOKEN: ${{ secrets.WEBHOOK_SECRET_TOKEN }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
-          envs: GITHUB_TOKEN,GITHUB_ACTOR,BOT_TOKEN,DB_PASSWORD,ENVIRONMENT,BOT_IMAGE
+          envs: GITHUB_TOKEN,GITHUB_ACTOR,BOT_TOKEN,DB_PASSWORD,ENVIRONMENT,BOT_IMAGE,WEBHOOK_URL,WEBHOOK_SECRET_TOKEN
           script: |
             cd /tmp/hello-bot-deploy
 
@@ -197,6 +199,8 @@ jobs:
             DB_PASSWORD=$DB_PASSWORD
             ENVIRONMENT=$ENVIRONMENT
             BOT_IMAGE=$BOT_IMAGE
+            WEBHOOK_URL=$WEBHOOK_URL
+            WEBHOOK_SECRET_TOKEN=$WEBHOOK_SECRET_TOKEN
             DEBUG=false
             LOG_LEVEL=INFO
             EOF

@@ -19,6 +19,7 @@ except ImportError:
     # uvloop not available, use default event loop
     pass
 
+import uvicorn
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
@@ -27,6 +28,7 @@ from app.config import settings
 from app.database.session import create_tables, engine
 from app.handlers import register_common_handlers, register_start_handlers
 from app.middlewares import DatabaseMiddleware
+from app.webhook import create_webhook_app
 
 
 # Configure logging
@@ -139,13 +141,40 @@ async def main() -> None:
             if settings.is_production and settings.webhook_url:
                 # Production webhook mode
                 logger.info(f"Starting in webhook mode: {settings.webhook_url}")
+
+                # Set webhook
                 await bot.set_webhook(
                     url=settings.webhook_url,
                     secret_token=settings.webhook_secret_token,
                 )
-                # Note: In real webhook mode, you'd start a web server here
-                # For now, we'll still use polling even in production
-                await dp.start_polling(bot, handle_signals=False)
+                logger.info("Webhook set successfully")
+
+                # Create FastAPI app for webhook handling
+                app = create_webhook_app(bot, dp)
+
+                # Configure uvicorn
+                config = uvicorn.Config(
+                    app=app,
+                    host=settings.webhook_host,
+                    port=settings.webhook_port,
+                    log_level="info" if settings.debug else "warning",
+                    access_log=settings.debug,
+                )
+
+                # Start webhook server
+                server = uvicorn.Server(config)
+                logger.info(
+                    f"Starting webhook server on {settings.webhook_host}:{settings.webhook_port}"
+                )
+
+                # Run server until shutdown signal
+                server_task = asyncio.create_task(server.serve())
+                await shutdown_event.wait()
+
+                # Shutdown server
+                server.should_exit = True
+                await server_task
+
             else:
                 # Development polling mode
                 logger.info("Starting in polling mode")

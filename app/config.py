@@ -31,9 +31,12 @@ class Settings(BaseSettings):
     debug: bool = Field(default=False, description="Debug mode")
     log_level: str = Field(default="INFO", description="Logging level")
 
-    # Performance settings
+    # Webhook settings
     webhook_url: str | None = Field(default=None, description="Webhook URL for production")
     webhook_secret_token: str | None = Field(default=None, description="Webhook secret token")
+    webhook_path: str = Field(default="/webhook", description="Webhook endpoint path")
+    webhook_host: str = Field(default="0.0.0.0", description="Webhook server host")
+    webhook_port: int = Field(default=8000, description="Webhook server port")
 
     @property
     def is_production(self) -> bool:
