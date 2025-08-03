@@ -165,6 +165,32 @@ stop_existing_services() {
     fi
 }
 
+# Clean up conflicting Docker networks before migration
+cleanup_conflicting_networks() {
+    log_info "Cleaning up conflicting Docker networks..."
+    
+    local network_name="${PROJECT_NAME}_network"
+    
+    # Check if network exists and has wrong labels
+    if docker network inspect "$network_name" >/dev/null 2>&1; then
+        log_warning "Found existing network '$network_name', checking for label conflicts..."
+        
+        # Force remove the network to avoid Docker Compose label conflicts
+        docker network rm "$network_name" 2>/dev/null || {
+            log_warning "Could not remove network '$network_name' (may be in use by containers)"
+            
+            # If network removal failed, try stopping all containers using it first
+            log_info "Attempting to stop containers using the network..."
+            docker ps -q --filter "network=$network_name" | xargs -r docker stop || true
+            docker network rm "$network_name" 2>/dev/null || log_warning "Network cleanup failed - proceeding anyway"
+        }
+        
+        log_success "Network cleanup completed"
+    else
+        log_info "No conflicting network found"
+    fi
+}
+
 # Run database migration with smart error handling
 run_database_migration() {
     log_info "Running database migration..."
@@ -316,8 +342,12 @@ cleanup_old_resources() {
     # Remove old unused images (keep recent ones)
     docker image prune -f --filter "until=72h" || log_warning "Image cleanup failed"
     
-    # Skip network cleanup to avoid conflicts with Docker Compose managed networks
-    log_info "Skipping network cleanup to preserve Docker Compose managed networks"
+    # Clean up conflicting networks (Docker Compose label mismatch fix)
+    log_info "Cleaning up potentially conflicting networks..."
+    if docker network inspect "${PROJECT_NAME}_network" >/dev/null 2>&1; then
+        log_warning "Found existing ${PROJECT_NAME}_network with potential label conflicts, removing..."
+        docker network rm "${PROJECT_NAME}_network" 2>/dev/null || log_warning "Could not remove ${PROJECT_NAME}_network (may be in use)"
+    fi
     
     # Remove unused build cache (keep recent)
     docker builder prune -f --filter "until=24h" || log_warning "Build cache cleanup failed"
@@ -392,6 +422,7 @@ main() {
     
     # Execute sequential deployment steps
     step_timer "stop_existing_services" stop_existing_services
+    step_timer "cleanup_conflicting_networks" cleanup_conflicting_networks
     step_timer "run_database_migration" run_database_migration
     step_timer "start_services" start_services
     step_timer "wait_for_health_fast" wait_for_health_fast
