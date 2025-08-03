@@ -1,0 +1,114 @@
+version: "3.8"
+
+services:
+  # PostgreSQL Database (Optimized for 2GB RAM)
+  postgres:
+    image: postgres:15-alpine
+    container_name: hello_bot_postgres
+    environment:
+      POSTGRES_DB: hello_bot
+      POSTGRES_USER: hello_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-dev_password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+      # Memory optimizations for 2GB RAM VPS
+      POSTGRES_SHARED_BUFFERS: "256MB"
+      POSTGRES_EFFECTIVE_CACHE_SIZE: "512MB"
+      POSTGRES_MAINTENANCE_WORK_MEM: "64MB"
+      POSTGRES_CHECKPOINT_COMPLETION_TARGET: "0.7"
+      POSTGRES_WAL_BUFFERS: "16MB"
+      POSTGRES_DEFAULT_STATISTICS_TARGET: "100"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./scripts/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    # Resource limits for 2GB RAM system
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hello_user -d hello_bot"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - hello_bot_network
+
+  # Telegram Bot Application (Optimized for 2GB RAM)
+  bot:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: hello_bot_app
+    environment:
+      # Database configuration
+      DATABASE_URL: postgresql+asyncpg://hello_user:${DB_PASSWORD:-dev_password}@postgres:5432/hello_bot
+      
+      # Bot configuration
+      BOT_TOKEN: ${BOT_TOKEN}
+      
+      # Application settings
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      DEBUG: ${DEBUG:-false}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      
+      # Optimized performance settings for 2GB RAM
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-3}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-5}
+      
+      # Python memory optimizations
+      PYTHONOPTIMIZE: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Resource limits for bot application
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+    restart: unless-stopped
+    networks:
+      - hello_bot_network
+    # Health check for the bot
+    healthcheck:
+      test: ["CMD", "python", "-c", "from app.config import settings; exit(0 if settings.bot_token else 1)"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 30s
+
+  # Optional: Adminer for database management (development only)
+  adminer:
+    image: adminer:4-standalone
+    container_name: hello_bot_adminer
+    ports:
+      - "${ADMINER_PORT:-8080}:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+      ADMINER_DESIGN: "nette"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    networks:
+      - hello_bot_network
+    profiles:
+      - development
+
+volumes:
+  postgres_data:
+    name: hello_bot_postgres_data
+
+networks:
+  hello_bot_network:
+    name: hello_bot_network
+    driver: bridge
