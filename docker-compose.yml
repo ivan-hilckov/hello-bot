@@ -60,6 +60,7 @@ services:
       - hello_bot_network
     profiles:
       - production
+      - migration
 
   # Telegram Bot Application (Production)
   bot:
