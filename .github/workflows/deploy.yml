@@ -153,39 +153,7 @@ jobs:
           # Ensure scripts are executable
           chmod +x scripts/*.sh
 
-          # Login to GitHub Container Registry
-          echo "🔐 Logging in to GitHub Container Registry..."
-          echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
-
-          # Pull latest images
-          echo "📥 Pulling Docker images..."
-          docker compose --profile production pull
-
-          # Stop existing services gracefully
-          echo "🛑 Stopping existing services..."
-          docker compose --profile production down --timeout 30 || true
-
-          # Start services
-          echo "🚀 Starting services..."
-          docker compose --profile production up -d --remove-orphans
-
-          # Wait for services to be healthy
-          echo "🔍 Waiting for services to be healthy..."
-          timeout 300 docker compose --profile production exec -T bot python -c "from app.config import settings; print('Bot configuration OK')" || {
-            echo "❌ Health check failed"
-            docker compose --profile production logs
-            exit 1
-          }
-
-          # Cleanup old images
-          echo "🧹 Cleaning up..."
-          docker system prune -f
-
-          echo "✅ Deployment completed successfully!"
-
-          # Show status
-          echo "📊 Service Status:"
-          docker compose --profile production ps
+          echo "✅ Files copied successfully!"
           EOF
 
           chmod +x deploy/deploy.sh
@@ -218,7 +186,11 @@ jobs:
           script: |
             cd /tmp/hello-bot-deploy
 
-            # Create .env file from secrets
+            # Run deployment script
+            ./deploy.sh
+
+            # Create .env file in the final deployment directory
+            cd $HOME/hello-bot
             cat > .env << EOF
             BOT_TOKEN=$BOT_TOKEN
             DB_PASSWORD=$DB_PASSWORD
@@ -227,8 +199,32 @@ jobs:
             LOG_LEVEL=INFO
             EOF
 
-            # Run deployment script
-            ./deploy.sh
+            # Now start the services with the correct .env file
+            echo "🔐 Logging in to GitHub Container Registry..."
+            echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+
+            echo "📥 Pulling Docker images..."
+            docker compose --profile production pull
+
+            echo "🛑 Stopping existing services..."
+            docker compose --profile production down --timeout 30 || true
+
+            echo "🚀 Starting services..."
+            docker compose --profile production up -d --remove-orphans
+
+            echo "🔍 Waiting for services to be healthy..."
+            timeout 300 docker compose --profile production exec -T bot python -c "from app.config import settings; print('Bot configuration OK')" || {
+              echo "❌ Health check failed"
+              docker compose --profile production logs
+              exit 1
+            }
+
+            echo "🧹 Cleaning up..."
+            docker system prune -f
+
+            echo "✅ Deployment completed successfully!"
+            echo "📊 Service Status:"
+            docker compose --profile production ps
 
       - name: Verify deployment
         uses: appleboy/ssh-action@v1.0.3
