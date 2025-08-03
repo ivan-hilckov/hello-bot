@@ -5,7 +5,7 @@ services:
   # Database Migration Service (runs before app startup)
   migration:
     image: ${BOT_IMAGE}
-    container_name: ${PROJECT_NAME:-telegram_bot}_migration
+    container_name: ${PROJECT_NAME}_migration
     env_file: .env
     environment:
       DATABASE_URL: postgresql+asyncpg://${DB_USER:-telegram_user}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-telegram_bot}
@@ -14,7 +14,7 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - ${PROJECT_NAME:-telegram_bot}_network
+      - bot_network
     profiles:
       - migration
       - production
@@ -22,7 +22,7 @@ services:
   # PostgreSQL Database (Optimized for 2GB RAM VPS)
   postgres:
     image: postgres:15-alpine
-    container_name: ${PROJECT_NAME:-telegram_bot}_postgres
+    container_name: ${PROJECT_NAME}_postgres
     environment:
       POSTGRES_DB: ${DB_NAME:-telegram_bot}
       POSTGRES_USER: ${DB_USER:-telegram_user}
@@ -57,7 +57,7 @@ services:
       start_interval: 2s
     restart: unless-stopped
     networks:
-      - ${PROJECT_NAME:-telegram_bot}_network
+      - bot_network
     profiles:
       - production
       - migration
@@ -65,7 +65,7 @@ services:
   # Telegram Bot Application (Production)
   bot:
     image: ${BOT_IMAGE}
-    container_name: ${PROJECT_NAME:-telegram_bot}_app
+    container_name: ${PROJECT_NAME}_app
     env_file: .env
     environment:
       # Database configuration
@@ -109,7 +109,7 @@ services:
           memory: 128M
     restart: unless-stopped
     networks:
-      - ${PROJECT_NAME:-telegram_bot}_network
+      - bot_network
     # Health check for the bot application
     healthcheck:
       test: [ "CMD", "python", "-c", "from app.config import settings; exit(0 if settings.bot_token else 1)" ]
@@ -123,9 +123,9 @@ services:
 
 volumes:
   postgres_data:
-    name: ${PROJECT_NAME:-telegram_bot}_postgres_data
+    name: ${PROJECT_NAME}_postgres_data
 
 networks:
-  ${PROJECT_NAME:-telegram_bot}_network:
-    name: ${PROJECT_NAME:-telegram_bot}_network
+  bot_network:
+    name: ${PROJECT_NAME}_network
     driver: bridge

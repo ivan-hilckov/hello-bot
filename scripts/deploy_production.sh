@@ -111,7 +111,7 @@ BOT_TOKEN=${BOT_TOKEN}
 DB_PASSWORD=${DB_PASSWORD}
 ENVIRONMENT=${ENVIRONMENT}
 BOT_IMAGE=${BOT_IMAGE}
-PROJECT_NAME=${PROJECT_NAME:-hello-bot}
+PROJECT_NAME=${PROJECT_NAME}
 WEBHOOK_URL=${WEBHOOK_URL:-}
 WEBHOOK_SECRET_TOKEN=${WEBHOOK_SECRET_TOKEN:-}
 
@@ -127,10 +127,6 @@ PYTHONDONTWRITEBYTECODE=1
 PYTHONUNBUFFERED=1
 EOF
 
-    # Export PROJECT_NAME for all docker compose commands
-    export PROJECT_NAME="${PROJECT_NAME:-hello-bot}"
-    log_info "Using PROJECT_NAME: $PROJECT_NAME"
-    
     log_success "Environment file created"
 }
 
@@ -173,11 +169,6 @@ stop_existing_services() {
 run_database_migration() {
     log_info "Running database migration..."
     
-    # Ensure Docker network exists before migration
-    local network_name="${PROJECT_NAME}_network"
-    log_info "Creating Docker network: $network_name"
-    docker network create "$network_name" 2>/dev/null || log_info "Network $network_name already exists"
-    
     # Try to run migration normally first
     if docker compose --profile migration up --exit-code-from migration migration 2>/dev/null; then
         log_success "Database migration completed successfully"
@@ -211,10 +202,6 @@ run_database_migration() {
 # Start services
 start_services() {
     log_info "Starting services..."
-    
-    # Ensure Docker network exists before starting services
-    local network_name="${PROJECT_NAME}_network"
-    docker network create "$network_name" 2>/dev/null || true
     
     docker compose --profile production up -d --remove-orphans
     
@@ -329,8 +316,8 @@ cleanup_old_resources() {
     # Remove old unused images (keep recent ones)
     docker image prune -f --filter "until=72h" || log_warning "Image cleanup failed"
     
-    # Remove unused networks
-    docker network prune -f || log_warning "Network cleanup failed"
+    # Skip network cleanup to avoid conflicts with Docker Compose managed networks
+    log_info "Skipping network cleanup to preserve Docker Compose managed networks"
     
     # Remove unused build cache (keep recent)
     docker builder prune -f --filter "until=24h" || log_warning "Build cache cleanup failed"
@@ -383,6 +370,14 @@ main() {
     
     # Set trap for cleanup on failure
     trap rollback ERR
+    
+    # Validate and export PROJECT_NAME globally for all docker compose commands
+    if [[ -z "${PROJECT_NAME:-}" ]]; then
+        log_error "PROJECT_NAME environment variable is required"
+        exit 1
+    fi
+    export PROJECT_NAME
+    log_info "Using PROJECT_NAME: $PROJECT_NAME (exported globally)"
     
     # Execute sequential preparation steps
     step_timer "validate_environment" validate_environment
