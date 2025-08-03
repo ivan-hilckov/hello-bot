@@ -3,7 +3,6 @@ Webhook server implementation using FastAPI.
 """
 
 import logging
-from typing import Any
 
 from aiogram import Bot, Dispatcher
 from aiogram.types import Update
@@ -41,16 +40,13 @@ def create_webhook_app(bot: Bot, dp: Dispatcher) -> FastAPI:
                     logger.warning("Invalid webhook secret token")
                     raise HTTPException(status_code=401, detail="Unauthorized")
 
-            # Get request body
-            body = await request.body()
-
             # Parse update
             try:
                 update_data = await request.json()
                 update = Update.model_validate(update_data)
             except Exception as e:
                 logger.error(f"Failed to parse update: {e}")
-                raise HTTPException(status_code=400, detail="Invalid update format")
+                raise HTTPException(status_code=400, detail="Invalid update format") from e
 
             # Process update
             await dp.feed_update(bot, update)
@@ -62,7 +58,7 @@ def create_webhook_app(bot: Bot, dp: Dispatcher) -> FastAPI:
             raise
         except Exception as e:
             logger.error(f"Webhook processing error: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail="Internal server error")
+            raise HTTPException(status_code=500, detail="Internal server error") from e
 
     @app.exception_handler(Exception)
     async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
