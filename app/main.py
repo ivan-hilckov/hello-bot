@@ -26,60 +26,59 @@ from aiogram.enums import ParseMode
 
 from app.config import settings
 from app.database.session import create_tables, engine
-from app.handlers import register_common_handlers, register_start_handlers
+from app.handlers import common_router, start_router
+from app.logging import log_system_event, setup_structured_logging
 from app.middlewares import DatabaseMiddleware
 from app.webhook import create_webhook_app
-
-
-# Configure logging
-def setup_logging() -> None:
-    """Configure logging for the application."""
-    log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-
-    # Configure root logger
-    logging.basicConfig(
-        level=getattr(logging, settings.log_level.upper()),
-        format=log_format,
-        handlers=[
-            logging.StreamHandler(sys.stdout),
-        ],
-    )
-
-    # Set specific loggers
-    if not settings.debug:
-        # Reduce noise in production
-        logging.getLogger("aiogram").setLevel(logging.WARNING)
-        logging.getLogger("sqlalchemy").setLevel(logging.WARNING)
 
 
 @asynccontextmanager
 async def lifespan() -> AsyncGenerator[None, None]:
     """Application lifespan context manager."""
-    logger = logging.getLogger(__name__)
+    import structlog
+
+    logger = structlog.get_logger(__name__)
 
     try:
         # Startup
-        logger.info("Starting Hello Bot application")
-        logger.info(f"Environment: {settings.environment}")
-        logger.info(f"Debug mode: {settings.debug}")
+        log_system_event(
+            logger,
+            "Starting Hello Bot application",
+            component="main",
+            environment=settings.environment,
+            debug_mode=settings.debug,
+            version="1.0.0",
+        )
 
         # Create database tables
         try:
             await create_tables()
-            logger.info("Database tables created/verified")
+            log_system_event(
+                logger, "Database tables created/verified", component="database", status="success"
+            )
         except Exception as e:
-            logger.error(f"Failed to create database tables: {e}")
+            log_system_event(
+                logger,
+                "Failed to create database tables",
+                component="database",
+                status="error",
+                error=str(e),
+            )
             raise
 
         yield
 
     finally:
         # Shutdown
-        logger.info("Shutting down Hello Bot application")
+        log_system_event(
+            logger, "Shutting down Hello Bot application", component="main", status="shutdown"
+        )
 
         # Close database engine
         await engine.dispose()
-        logger.info("Database connections closed")
+        log_system_event(
+            logger, "Database connections closed", component="database", status="shutdown"
+        )
 
 
 def create_bot() -> Bot:
@@ -105,18 +104,17 @@ def create_dispatcher() -> Dispatcher:
     # Add middlewares
     dp.message.middleware(DatabaseMiddleware())
 
-    # Register handlers
-    register_start_handlers(dp)
-    register_common_handlers(dp)
+    # Include routers (modern approach)
+    dp.include_router(start_router)
+    dp.include_router(common_router)
 
     return dp
 
 
 async def main() -> None:
     """Main application function."""
-    # Setup logging
-    setup_logging()
-    logger = logging.getLogger(__name__)
+    # Setup structured logging
+    logger = setup_structured_logging()
 
     async with lifespan():
         # Create bot and dispatcher
