@@ -6,7 +6,6 @@ Automatically restarts the bot when code changes are detected.
 
 import asyncio
 import logging
-import subprocess
 import sys
 from pathlib import Path
 
@@ -55,7 +54,7 @@ class BotRunner:
             self.process.terminate()
             try:
                 await asyncio.wait_for(self.process.wait(), timeout=5.0)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 logger.warning("Bot didn't stop gracefully, killing...")
                 self.process.kill()
             self.process = None
