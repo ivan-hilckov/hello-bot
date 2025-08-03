@@ -138,7 +138,7 @@ jobs:
           echo "✅ Deployment files prepared"
 
       - name: Copy files to VPS
-        uses: appleboy/scp-action@v0.1.8
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
