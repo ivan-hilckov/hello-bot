@@ -122,7 +122,7 @@ jobs:
           # Copy necessary files
           cp docker-compose.yml deploy/
           cp -r scripts deploy/
-          cp env.example deploy/
+          cp .env.example deploy/
 
           # Create deployment script
           cat > deploy/deploy.sh << 'EOF'
