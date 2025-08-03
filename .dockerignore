@@ -1,79 +1,95 @@
-# Git
+# Comprehensive .dockerignore for Hello Bot
+# Exclude files to optimize build context and improve caching
+
+# Git files
 .git
 .gitignore
+.github/
 
-# Python
-__pycache__
-*.pyc
-*.pyo
-*.pyd
-.Python
-env
-pip-log.txt
-pip-delete-this-directory.txt
-.tox
-.coverage
-.coverage.*
-.pytest_cache
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.log
-.nyc_output
+# Documentation and markdown files
+*.md
+docs/
+DEPLOYMENT_OPTIMIZATION.md
+DEPLOYMENT_GUIDE.md
+GITHUB_SECRETS.md
+TODO.md
 
-# Virtual environments
+# Development files
 .env
-.venv
+.env.local
+.env.development
+.env.test
+*.log
+logs/
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
 
-# Development files
-.DS_Store
+# Development directories
 .vscode/
 .idea/
-*.swp
-*.swo
+.pytest_cache/
+.coverage
+.mypy_cache/
+.ruff_cache/
 
-# Documentation
-*.md
-docs/
+# Docker files
+.dockerignore
+Dockerfile.dev
+docker-compose.dev.yml
+docker-compose.override.yml
 
-# CI/CD
-.github/
-.gitlab-ci.yml
-
-# Temporary files
+# Backup and temporary files
+*~
+*.bak
+*.tmp
 tmp/
 temp/
-*.tmp
-
-# Local configuration
-.env.local
-.env.development
-.env.test
-
-# Logs
-logs/
-*.log
-
-# Database
-*.db
-*.sqlite3
-
-# OS generated files
-.DS_Store
-Thumbs.db
-
-# Package managers
-node_modules/
-npm-debug.log
-yarn-error.log
+backup/
+hello-bot-backup/
 
 # Build artifacts
-build/
 dist/
+build/
 *.egg-info/
+
+# Scripts and tools (not needed in production)
+scripts/test_*.sh
+scripts/dev_*.sh
+scripts/start_dev.sh
+scripts/stop_dev.sh
+
+# Makefile (not needed in production)
+Makefile
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Editor files
+*.swp
+*.swo
+*~
+
+# Node modules (if any)
+node_modules/
+
+# Exclude everything in root except what's needed
+!app/
+!alembic/
+!pyproject.toml
+!uv.lock
+!alembic.ini

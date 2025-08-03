@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "hello-bot"
 version = "0.1.0"
 description = "Minimal Telegram bot for deployment testing"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 
 dependencies = [
     # Core bot framework
@@ -51,7 +51,7 @@ prod = [
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "B", "I", "N", "UP", "C4"]

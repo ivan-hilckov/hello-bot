@@ -1,47 +1,52 @@
-# Multi-stage optimized Dockerfile for Hello Bot
-FROM python:3.11-slim as base
+# Optimized Dockerfile for Hello Bot using uv with enhanced caching
+FROM ghcr.io/astral-sh/uv:python3.12-alpine AS builder
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create non-root user for security
-RUN groupadd -r botuser && useradd -r -g botuser botuser
+# Install system dependencies for building
+RUN apk add --no-cache curl gcc musl-dev
 
 WORKDIR /app
 
-# === DEPENDENCY LAYER (cached unless dependencies change) ===
-FROM base as dependencies
+# Copy dependency files ONLY for optimal caching
+COPY pyproject.toml uv.lock ./
 
-# Copy only dependency files first for better caching
-COPY pyproject.toml ./
-COPY uv.lock* ./
+# Install dependencies with cache mounts for optimal performance
+RUN --mount=type=cache,target=/root/.cache/uv \
+  --mount=type=cache,target=/tmp/uv-cache \
+  uv sync --frozen --no-dev
 
-# Install uv for faster dependency management
-RUN pip install uv
+# === RUNTIME STAGE ===
+FROM python:3.12-alpine AS runtime
 
-# Install dependencies using pyproject.toml
-RUN uv pip install --system --no-cache-dir -e .
+# Install runtime dependencies only
+RUN apk add --no-cache curl
 
-# === RUNTIME LAYER ===
-FROM base as runtime
+# Create non-root user for security
+RUN addgroup -g 1001 -S botuser && \
+  adduser -u 1001 -S botuser -G botuser
 
-# Copy installed packages from dependencies stage
-COPY --from=dependencies /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=dependencies /usr/local/bin /usr/local/bin
+WORKDIR /app
 
-# Copy application code (this layer changes most frequently)
-COPY --chown=botuser:botuser app/ ./app/
-COPY --chown=botuser:botuser alembic/ ./alembic/
-COPY --chown=botuser:botuser alembic.ini ./
+# Copy virtual environment from builder (cached layer)
+COPY --from=builder --chown=botuser:botuser /app/.venv /app/.venv
+
+# Make sure we use venv
+ENV PATH="/app/.venv/bin:$PATH"
+
+# Copy dependency files first (rarely changes)
 COPY --chown=botuser:botuser pyproject.toml ./
+COPY --chown=botuser:botuser alembic.ini ./
+
+# Copy alembic configuration (changes less frequently)
+COPY --chown=botuser:botuser alembic/ ./alembic/
+
+# Copy application code LAST (changes most frequently)
+COPY --chown=botuser:botuser app/ ./app/
 
 # Switch to non-root user
 USER botuser
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+# Optimized health check for faster startup detection
+HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --start-interval=2s --retries=12 \
   CMD python -c "import asyncio; from app.config import settings; exit(0 if settings.bot_token else 1)"
 
 # Labels for metadata
@@ -49,5 +54,5 @@ LABEL org.opencontainers.image.title="Hello Bot"
 LABEL org.opencontainers.image.description="Minimal Telegram bot for deployment testing"
 LABEL org.opencontainers.image.version="0.1.0"
 
-# Run database migrations and start the bot  
-CMD ["sh", "-c", "sleep 10 && echo 'Skipping alembic for now' && python -m app.main"]
+# Start the bot (migrations run separately)
+CMD ["python", "-m", "app.main"]

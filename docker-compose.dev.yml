@@ -1,0 +1,91 @@
+# Development Docker Compose for Hello Bot
+# Use: docker compose -f docker-compose.dev.yml up
+
+services:
+  # PostgreSQL Database (Development)
+  postgres:
+    image: postgres:15-alpine
+    container_name: hello_bot_postgres_dev
+    environment:
+      POSTGRES_DB: hello_bot
+      POSTGRES_USER: hello_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-dev_password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U hello_user -d hello_bot" ]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - hello_bot_dev_network
+
+  # Telegram Bot Application (Development with Hot Reloading)
+  bot-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: hello_bot_dev
+    env_file: .env
+    environment:
+      # Database configuration
+      DATABASE_URL: postgresql+asyncpg://hello_user:${DB_PASSWORD:-dev_password}@postgres:5432/hello_bot
+
+      # Bot configuration
+      BOT_TOKEN: ${BOT_TOKEN}
+
+      # Application settings (development)
+      ENVIRONMENT: development
+      DEBUG: true
+      LOG_LEVEL: DEBUG
+
+      # Database settings for development
+      DB_POOL_SIZE: 2
+      DB_MAX_OVERFLOW: 3
+
+      # Python settings for development
+      PYTHONUNBUFFERED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+    volumes:
+      # Mount source code for hot reloading
+      - ./app:/app/app
+      - ./scripts:/app/scripts
+      - ./alembic:/app/alembic
+      - ./alembic.ini:/app/alembic.ini
+      - ./pyproject.toml:/app/pyproject.toml
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - hello_bot_dev_network
+
+  # Adminer for database management (development only)
+  adminer:
+    image: adminer:4-standalone
+    container_name: hello_bot_adminer
+    ports:
+      - "${ADMINER_PORT:-8080}:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+      ADMINER_DESIGN: "nette"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    networks:
+      - hello_bot_dev_network
+
+volumes:
+  postgres_dev_data:
+    name: hello_bot_postgres_dev_data
+
+networks:
+  hello_bot_dev_network:
+    name: hello_bot_dev_network
+    driver: bridge

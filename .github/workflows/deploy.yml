@@ -33,7 +33,7 @@ jobs:
           enable-cache: true
 
       - name: Set up Python
-        run: uv python install 3.11
+        run: uv python install 3.12
 
       - name: Install dependencies
         run: uv sync
@@ -83,6 +83,7 @@ jobs:
             type=ref,event=pr
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=cache
 
       - name: Build and push Docker image
         id: build
@@ -93,15 +94,21 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          # Enhanced caching strategy for Docker Hub
+          # Multi-layer caching strategy for optimal performance
           cache-from: |
+            type=registry,ref=${{ env.IMAGE_NAME }}:cache
+            type=registry,ref=${{ env.IMAGE_NAME }}:latest
             type=registry,ref=${{ env.IMAGE_NAME }}:buildcache
             type=gha
           cache-to: |
+            type=registry,ref=${{ env.IMAGE_NAME }}:cache,mode=max
             type=registry,ref=${{ env.IMAGE_NAME }}:buildcache,mode=max
             type=gha,mode=max
           build-args: |
             BUILDKIT_INLINE_CACHE=1
+          # Enable additional optimizations
+          provenance: false
+          sbom: false
 
   # Deploy to VPS
   deploy:
@@ -118,52 +125,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Create deployment files
+      - name: Prepare deployment files
         run: |
           # Create temporary directory for deployment
           mkdir -p deploy
 
-          # Copy necessary files
+          # Copy necessary files for production deployment
           cp docker-compose.yml deploy/
           cp -r scripts deploy/
           cp .env.example deploy/
 
-          # Create deployment script
-          cat > deploy/deploy.sh << 'EOF'
-          #!/bin/bash
-          set -euo pipefail
-
-          echo "🚀 Starting Hello Bot deployment..."
-
-          # Set deployment directory
-          DEPLOY_DIR="$HOME/hello-bot"
-          BACKUP_DIR="$HOME/hello-bot-backup"
-
-          # Create deployment directory if it doesn't exist
-          mkdir -p "$DEPLOY_DIR"
-
-          # Backup current deployment
-          if [ -d "$DEPLOY_DIR/docker-compose.yml" ]; then
-            echo "📦 Creating backup..."
-            rm -rf "$BACKUP_DIR" || true
-            cp -r "$DEPLOY_DIR" "$BACKUP_DIR" || true
-          fi
-
-          # Copy new files
-          echo "📂 Copying deployment files..."
-          cp -r * "$DEPLOY_DIR/"
-          cd "$DEPLOY_DIR"
-
-          # Ensure scripts are executable
-          chmod +x scripts/*.sh
-
-          echo "✅ Files copied successfully!"
-          EOF
-
-          chmod +x deploy/deploy.sh
+          echo "✅ Deployment files prepared"
 
       - name: Copy files to VPS
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@v0.1.8
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -174,7 +149,7 @@ jobs:
           strip_components: 1
 
       - name: Deploy to VPS
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.1.0
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
@@ -189,73 +164,25 @@ jobs:
           port: ${{ secrets.VPS_PORT || 22 }}
           envs: BOT_TOKEN,DB_PASSWORD,ENVIRONMENT,BOT_IMAGE,WEBHOOK_URL,WEBHOOK_SECRET_TOKEN
           script: |
+            # Run centralized production deployment script
             cd /tmp/hello-bot-deploy
-
-            # Run deployment script
-            ./deploy.sh
-
-            # Create .env file in the final deployment directory
-            cd $HOME/hello-bot
-            cat > .env << EOF
-            BOT_TOKEN=$BOT_TOKEN
-            DB_PASSWORD=$DB_PASSWORD
-            ENVIRONMENT=$ENVIRONMENT
-            BOT_IMAGE=$BOT_IMAGE
-            WEBHOOK_URL=$WEBHOOK_URL
-            WEBHOOK_SECRET_TOKEN=$WEBHOOK_SECRET_TOKEN
-            DEBUG=false
-            LOG_LEVEL=INFO
-            EOF
-
-            # Pull Docker images from Docker Hub (better caching)
-            echo "📥 Pulling Docker images from Docker Hub..."
-            docker compose --profile production pull
-
-            echo "🛑 Stopping existing services..."
-            docker compose --profile production down --timeout 30 || true
-
-            echo "🚀 Starting services..."
-            docker compose --profile production up -d --remove-orphans
-
-            echo "🔍 Waiting for services to be healthy..."
-            timeout 300 docker compose --profile production exec -T bot python -c "from app.config import settings; print('Bot configuration OK')" || {
-              echo "❌ Health check failed"
-              docker compose --profile production logs
-              exit 1
-            }
-
-            echo "🧹 Cleaning up..."
-            docker system prune -f
-
-            echo "✅ Deployment completed successfully!"
-            echo "📊 Service Status:"
-            docker compose --profile production ps
+            ./scripts/deploy_production.sh
 
       - name: Verify deployment
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.1.0
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
           script: |
+            # Final verification - check if bot responds to Telegram
+            echo "🔍 Final deployment verification..."
             cd $HOME/hello-bot
 
-            echo "🔍 Final verification..."
-
-            # Check if services are running
-            if ! docker compose --profile production ps | grep -q "Up"; then
-              echo "❌ Services are not running properly"
-              docker compose --profile production logs --tail=50
+            if docker compose --profile production exec -T bot python -c "from app.config import settings; print('✅ Bot is healthy and ready')"; then
+              echo "✅ Deployment verification successful!"
+            else
+              echo "❌ Final verification failed"
               exit 1
             fi
-
-            # Check bot health
-            if ! docker compose --profile production exec -T bot python -c "from app.config import settings; print('✅ Bot is healthy')"; then
-              echo "❌ Bot health check failed"
-              exit 1
-            fi
-
-            echo "✅ Deployment verification successful!"
-            echo "📊 Current status:"
-            docker compose --profile production ps

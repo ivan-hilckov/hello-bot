@@ -2,5 +2,5 @@
 # Stop development environment
 
 echo "🛑 Stopping Hello Bot development environment..."
-docker compose --profile development down
+docker compose -f docker-compose.dev.yml down
 echo "✅ Development environment stopped!"
