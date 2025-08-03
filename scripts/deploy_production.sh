@@ -164,9 +164,89 @@ stop_existing_services() {
     fi
 }
 
+# Check and handle existing database state
+check_migration_state() {
+    log_info "Checking database migration state..."
+    
+    # Check if users table exists
+    local table_exists=$(docker compose --profile migration run --rm migration python -c "
+import asyncio
+import asyncpg
+import os
+import sys
+
+async def check_table():
+    try:
+        conn = await asyncpg.connect(os.environ['DATABASE_URL'])
+        result = await conn.fetchval(\"\"\"
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name = 'users'
+            );
+        \"\"\")
+        await conn.close()
+        return result
+    except Exception as e:
+        print(f'Error checking table: {e}', file=sys.stderr)
+        return False
+
+result = asyncio.run(check_table())
+print('true' if result else 'false')
+" 2>/dev/null || echo "false")
+    
+    # Check if alembic_version table exists
+    local alembic_exists=$(docker compose --profile migration run --rm migration python -c "
+import asyncio
+import asyncpg
+import os
+import sys
+
+async def check_alembic():
+    try:
+        conn = await asyncpg.connect(os.environ['DATABASE_URL'])
+        result = await conn.fetchval(\"\"\"
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name = 'alembic_version'
+            );
+        \"\"\")
+        await conn.close()
+        return result
+    except Exception as e:
+        print(f'Error checking alembic table: {e}', file=sys.stderr)
+        return False
+
+result = asyncio.run(check_alembic())
+print('true' if result else 'false')
+" 2>/dev/null || echo "false")
+    
+    log_info "Table exists: $table_exists, Alembic tracking: $alembic_exists"
+    
+    if [[ "$table_exists" == "true" && "$alembic_exists" == "false" ]]; then
+        log_info "Database tables exist but migration history is missing - marking migration as completed"
+        docker compose --profile migration run --rm migration alembic stamp head
+        log_success "Migration state synchronized"
+        return 0
+    elif [[ "$table_exists" == "true" && "$alembic_exists" == "true" ]]; then
+        log_info "Database and migration history both exist - checking if migration is needed"
+        return 1  # Proceed with normal migration check
+    else
+        log_info "Clean database state - proceeding with migration"
+        return 1  # Proceed with normal migration
+    fi
+}
+
 # Run database migration
 run_database_migration() {
     log_info "Running database migration..."
+    
+    # First check the migration state
+    if check_migration_state; then
+        log_success "Migration state already synchronized"
+        return 0
+    fi
     
     # Run migration in isolation
     docker compose --profile migration up --exit-code-from migration migration
