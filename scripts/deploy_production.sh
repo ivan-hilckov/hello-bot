@@ -111,7 +111,7 @@ BOT_TOKEN=${BOT_TOKEN}
 DB_PASSWORD=${DB_PASSWORD}
 ENVIRONMENT=${ENVIRONMENT}
 BOT_IMAGE=${BOT_IMAGE}
-PROJECT_NAME=hello-bot
+PROJECT_NAME=${PROJECT_NAME:-hello-bot}
 WEBHOOK_URL=${WEBHOOK_URL:-}
 WEBHOOK_SECRET_TOKEN=${WEBHOOK_SECRET_TOKEN:-}
 
@@ -127,6 +127,10 @@ PYTHONDONTWRITEBYTECODE=1
 PYTHONUNBUFFERED=1
 EOF
 
+    # Export PROJECT_NAME for all docker compose commands
+    export PROJECT_NAME="${PROJECT_NAME:-hello-bot}"
+    log_info "Using PROJECT_NAME: $PROJECT_NAME"
+    
     log_success "Environment file created"
 }
 
@@ -170,7 +174,7 @@ run_database_migration() {
     log_info "Running database migration..."
     
     # Ensure Docker network exists before migration
-    local network_name="${PROJECT_NAME:-telegram_bot}_network"
+    local network_name="${PROJECT_NAME}_network"
     log_info "Creating Docker network: $network_name"
     docker network create "$network_name" 2>/dev/null || log_info "Network $network_name already exists"
     
@@ -209,7 +213,7 @@ start_services() {
     log_info "Starting services..."
     
     # Ensure Docker network exists before starting services
-    local network_name="${PROJECT_NAME:-telegram_bot}_network"
+    local network_name="${PROJECT_NAME}_network"
     docker network create "$network_name" 2>/dev/null || true
     
     docker compose --profile production up -d --remove-orphans
