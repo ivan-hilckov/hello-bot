@@ -369,75 +369,6 @@ wheels = [
 ]
 
 [[package]]
-name = "hello-bot"
-version = "1.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "aiogram" },
-    { name = "alembic" },
-    { name = "asyncpg" },
-    { name = "fastapi" },
-    { name = "hiredis" },
-    { name = "prometheus-client" },
-    { name = "pydantic" },
-    { name = "pydantic-settings" },
-    { name = "python-dotenv" },
-    { name = "redis" },
-    { name = "slowapi" },
-    { name = "sqlalchemy", extra = ["asyncio"] },
-    { name = "structlog" },
-    { name = "uvicorn", extra = ["standard"] },
-    { name = "uvloop", marker = "sys_platform != 'win32'" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "aiosqlite" },
-    { name = "httpx" },
-    { name = "ipython" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-mock" },
-    { name = "ruff" },
-    { name = "watchfiles" },
-]
-prod = [
-    { name = "psutil" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "aiogram", specifier = ">=3.0.0" },
-    { name = "alembic", specifier = ">=1.13.0" },
-    { name = "asyncpg", specifier = ">=0.29.0" },
-    { name = "fastapi", specifier = ">=0.104.0" },
-    { name = "hiredis", specifier = ">=2.0.0" },
-    { name = "prometheus-client", specifier = ">=0.19.0" },
-    { name = "pydantic", specifier = ">=2.0.0" },
-    { name = "pydantic-settings", specifier = ">=2.0.0" },
-    { name = "python-dotenv", specifier = ">=1.0.0" },
-    { name = "redis", specifier = ">=5.0.0" },
-    { name = "slowapi", specifier = ">=0.1.9" },
-    { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.0" },
-    { name = "structlog", specifier = ">=23.2.0" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.24.0" },
-    { name = "uvloop", marker = "sys_platform != 'win32'", specifier = ">=0.19.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "aiosqlite", specifier = ">=0.19.0" },
-    { name = "httpx", specifier = ">=0.25.0" },
-    { name = "ipython", specifier = ">=8.0.0" },
-    { name = "pytest", specifier = ">=7.0.0" },
-    { name = "pytest-asyncio", specifier = ">=0.23.0" },
-    { name = "pytest-mock", specifier = ">=3.12.0" },
-    { name = "ruff", specifier = ">=0.12.4" },
-    { name = "watchfiles", specifier = ">=0.22.0" },
-]
-prod = [{ name = "psutil", specifier = ">=5.9.0" }]
-
-[[package]]
 name = "hiredis"
 version = "3.2.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1165,6 +1096,75 @@ sdist = { url = "https://files.pythonhosted.org/packages/79/b9/6e672db4fec07349e
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a0/4a/97ee6973e3a73c74c8120d59829c3861ea52210667ec3e7a16045c62b64d/structlog-25.4.0-py3-none-any.whl", hash = "sha256:fe809ff5c27e557d14e613f45ca441aabda051d119ee5a0102aaba6ce40eed2c", size = 68720, upload-time = "2025-06-02T08:21:11.43Z" },
 ]
+
+[[package]]
+name = "telegram-bot-template"
+version = "1.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "aiogram" },
+    { name = "alembic" },
+    { name = "asyncpg" },
+    { name = "fastapi" },
+    { name = "hiredis" },
+    { name = "prometheus-client" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "python-dotenv" },
+    { name = "redis" },
+    { name = "slowapi" },
+    { name = "sqlalchemy", extra = ["asyncio"] },
+    { name = "structlog" },
+    { name = "uvicorn", extra = ["standard"] },
+    { name = "uvloop", marker = "sys_platform != 'win32'" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "aiosqlite" },
+    { name = "httpx" },
+    { name = "ipython" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-mock" },
+    { name = "ruff" },
+    { name = "watchfiles" },
+]
+prod = [
+    { name = "psutil" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aiogram", specifier = ">=3.0.0" },
+    { name = "alembic", specifier = ">=1.13.0" },
+    { name = "asyncpg", specifier = ">=0.29.0" },
+    { name = "fastapi", specifier = ">=0.104.0" },
+    { name = "hiredis", specifier = ">=2.0.0" },
+    { name = "prometheus-client", specifier = ">=0.19.0" },
+    { name = "pydantic", specifier = ">=2.0.0" },
+    { name = "pydantic-settings", specifier = ">=2.0.0" },
+    { name = "python-dotenv", specifier = ">=1.0.0" },
+    { name = "redis", specifier = ">=5.0.0" },
+    { name = "slowapi", specifier = ">=0.1.9" },
+    { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.0" },
+    { name = "structlog", specifier = ">=23.2.0" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.24.0" },
+    { name = "uvloop", marker = "sys_platform != 'win32'", specifier = ">=0.19.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "aiosqlite", specifier = ">=0.19.0" },
+    { name = "httpx", specifier = ">=0.25.0" },
+    { name = "ipython", specifier = ">=8.0.0" },
+    { name = "pytest", specifier = ">=7.0.0" },
+    { name = "pytest-asyncio", specifier = ">=0.23.0" },
+    { name = "pytest-mock", specifier = ">=3.12.0" },
+    { name = "ruff", specifier = ">=0.12.4" },
+    { name = "watchfiles", specifier = ">=0.22.0" },
+]
+prod = [{ name = "psutil", specifier = ">=5.9.0" }]
 
 [[package]]
 name = "traitlets"
