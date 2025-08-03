@@ -46,7 +46,10 @@ VPS_USER=your-username
 VPS_PORT=22
 BOT_TOKEN=your_telegram_bot_token
 DB_PASSWORD=secure_random_password_123
+PROJECT_NAME=hello-bot
 ```
+
+> **⚠️ Important**: `PROJECT_NAME` is now **required** and must match your project name. This creates unique Docker networks and container names.
 
 **SSH Key Setup**:
 
@@ -237,6 +240,7 @@ SELECT count(*) as connections FROM pg_stat_activity;
 ```env
 # Bot configuration
 BOT_TOKEN=from_github_secrets
+PROJECT_NAME=hello-bot
 ENVIRONMENT=production
 DEBUG=false
 LOG_LEVEL=INFO

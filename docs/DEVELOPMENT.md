@@ -34,11 +34,14 @@ nano .env  # or code .env
 
 ```env
 BOT_TOKEN=your_real_token_from_botfather
+PROJECT_NAME=telegram-bot
 DB_PASSWORD=local_password_123
 ENVIRONMENT=development
 DEBUG=true
 LOG_LEVEL=DEBUG
 ```
+
+> **💡 Note**: Set `PROJECT_NAME` to your bot's name (use in template or keep default `telegram-bot`).
 
 ### 3. Run with Docker (Recommended)
 
@@ -381,6 +384,7 @@ asyncio.run(test())
 ```env
 # Required
 BOT_TOKEN=your_telegram_bot_token
+PROJECT_NAME=telegram-bot
 DB_PASSWORD=local_password_123
 
 # Development settings

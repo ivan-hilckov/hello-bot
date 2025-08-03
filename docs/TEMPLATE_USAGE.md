@@ -147,6 +147,7 @@ class SupportTicket(Base, TimestampMixin):
 ```bash
 # .env - Add your specific settings
 BOT_TOKEN=your_actual_bot_token
+PROJECT_NAME=my-awesome-bot  # REQUIRED: Your unique project name
 DB_PASSWORD=secure_random_password
 
 # Custom features
@@ -154,6 +155,8 @@ OPENAI_API_KEY=your_openai_key  # For AI features
 WEBHOOK_URL=https://yourdomain.com/webhook
 ADMIN_USER_ID=123456789  # Your Telegram user ID
 ```
+
+> **⚠️ Critical**: `PROJECT_NAME` must be set both locally and in GitHub Secrets for deployment. This creates unique Docker networks and container names.
 
 #### Docker Configuration
 

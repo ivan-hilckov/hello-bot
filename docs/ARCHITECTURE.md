@@ -143,6 +143,7 @@ async def main():
 
 **Configuration Categories:**
 
+- **Project**: `project_name` (required) - Creates unique Docker networks/containers
 - **Bot Settings**: `bot_token`, Telegram API configuration
 - **Database**: `database_url`, connection pooling settings
 - **Application**: `environment`, `debug`, `log_level`
@@ -554,6 +555,7 @@ async def health_check():
 **Configuration:**
 
 ```env
+PROJECT_NAME=telegram-bot  # Required: unique project identifier
 ENVIRONMENT=development
 DEBUG=true
 LOG_LEVEL=DEBUG
@@ -579,6 +581,7 @@ await dp.start_polling(bot, handle_signals=False)
 **Configuration:**
 
 ```env
+PROJECT_NAME=hello-bot  # Required: must match GitHub Secrets
 ENVIRONMENT=production
 DEBUG=false
 LOG_LEVEL=INFO
@@ -687,9 +690,29 @@ class DatabaseMiddleware(BaseMiddleware):
 ```yaml
 services:
   postgres: # Database server
+    container_name: ${PROJECT_NAME}_postgres
+    networks: [bot_network]
+
   migration: # One-time migration job
+    container_name: ${PROJECT_NAME}_migration
+    networks: [bot_network]
+
   bot: # Main application
+    container_name: ${PROJECT_NAME}_app
+    networks: [bot_network]
+
+networks:
+  bot_network:
+    name: ${PROJECT_NAME}_network # Creates unique network per project
+    driver: bridge
 ```
+
+**Network Architecture:**
+
+- **Isolated Networks**: Each project gets unique network via `PROJECT_NAME`
+- **Service Communication**: All containers on same private network
+- **External Access**: Only bot container exposes ports (8000 for webhook)
+- **Security**: Database isolated from external access
 
 ### Modern aiogram 3.0+ Features Used
 
