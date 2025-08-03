@@ -8,7 +8,9 @@ from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.container import inject_services
 from app.logging import log_user_interaction
+from app.metrics import track_command
 from app.services.user import UserService
 
 logger = structlog.get_logger(__name__)
@@ -18,15 +20,20 @@ start_router = Router(name="start")
 
 
 @start_router.message(Command("start"))
-async def start_handler(message: types.Message, session: AsyncSession) -> None:
+@inject_services(UserService)
+async def start_handler(
+    message: types.Message, session: AsyncSession, user_service: UserService
+) -> None:
     """
     Handle /start command.
 
     Creates or updates user record in database and sends personalized greeting.
+    Uses dependency injection to get UserService instance.
 
     Args:
         message: Telegram message object containing user info
         session: Database session injected by middleware
+        user_service: UserService injected by DI container
 
     Returns:
         None
@@ -43,8 +50,10 @@ async def start_handler(message: types.Message, session: AsyncSession) -> None:
         await message.answer("Hello world, <b>Unknown</b>", parse_mode=ParseMode.HTML)
         return
 
-    # Get or create user in database using service layer
-    user_service = UserService(session)
+    # Track command usage
+    track_command("start")
+
+    # Get or create user using injected service
     user = await user_service.get_or_create_user(message.from_user)
 
     # Send greeting

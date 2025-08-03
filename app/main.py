@@ -24,6 +24,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
+from app.cache import close_cache, initialize_cache
 from app.config import settings
 from app.database.session import create_tables, engine
 from app.handlers import common_router, start_router
@@ -50,6 +51,21 @@ async def lifespan() -> AsyncGenerator[None, None]:
             version="1.0.0",
         )
 
+        # Initialize cache service
+        try:
+            await initialize_cache()
+            log_system_event(
+                logger, "Cache service initialized", component="cache", status="success"
+            )
+        except Exception as e:
+            log_system_event(
+                logger,
+                "Failed to initialize cache",
+                component="cache",
+                status="error",
+                error=str(e),
+            )
+
         # Create database tables
         try:
             await create_tables()
@@ -73,6 +89,15 @@ async def lifespan() -> AsyncGenerator[None, None]:
         log_system_event(
             logger, "Shutting down Hello Bot application", component="main", status="shutdown"
         )
+
+        # Close cache service
+        try:
+            await close_cache()
+            log_system_event(logger, "Cache service closed", component="cache", status="success")
+        except Exception as e:
+            log_system_event(
+                logger, "Failed to close cache", component="cache", status="error", error=str(e)
+            )
 
         # Close database engine
         await engine.dispose()

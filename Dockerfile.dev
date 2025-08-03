@@ -12,7 +12,9 @@ WORKDIR /app
 
 # Install Python dependencies (including development tools)
 RUN pip install aiogram python-dotenv pydantic pydantic-settings \
-  sqlalchemy[asyncio] asyncpg alembic watchfiles
+  sqlalchemy[asyncio] asyncpg alembic watchfiles \
+  fastapi uvicorn[standard] prometheus-client slowapi \
+  redis hiredis structlog
 
 # Create app directory and set permissions
 RUN chown -R botuser:botuser /app

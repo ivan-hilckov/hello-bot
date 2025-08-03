@@ -12,13 +12,24 @@ from sqlalchemy.ext.asyncio import (
 
 from app.config import settings
 
-# Create async engine
+# Create async engine with optimized settings for 2GB VPS
 engine = create_async_engine(
     settings.database_url,
     pool_size=settings.db_pool_size,
     max_overflow=settings.db_max_overflow,
+    pool_timeout=settings.db_pool_timeout,
+    pool_recycle=settings.db_pool_recycle,
+    pool_pre_ping=True,  # Verify connections before use
     echo=settings.debug,  # Log SQL queries in debug mode
     future=True,
+    # Connection-level optimizations
+    connect_args={
+        "command_timeout": 30,  # Query timeout
+        "server_settings": {
+            "jit": "off",  # Disable JIT for 2GB VPS
+            "application_name": "hello_bot",
+        },
+    },
 )
 
 # Create async session factory

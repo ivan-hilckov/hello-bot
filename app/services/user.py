@@ -6,8 +6,10 @@ import structlog
 from aiogram import types
 from sqlalchemy import select
 
+from app.cache import cache_service
 from app.database.models import User
 from app.logging import log_user_interaction
+from app.metrics import track_database_operation
 from app.services.base import BaseService
 
 logger = structlog.get_logger(__name__)
@@ -33,12 +35,14 @@ class UserService(BaseService):
         stmt = select(User).where(User.telegram_id == telegram_user.id)
         result = await self.session.execute(stmt)
         user = result.scalar_one_or_none()
+        track_database_operation("select", "users")
 
         if user:
             # Update user information if changed
             updated = await self._update_user_if_changed(user, telegram_user)
             if updated:
                 await self.flush()
+                track_database_operation("update", "users")
                 log_user_interaction(
                     logger,
                     "Updated user info",
@@ -110,11 +114,12 @@ class UserService(BaseService):
         )
         self.session.add(user)
         await self.flush()
+        track_database_operation("insert", "users")
         return user
 
     async def get_user_by_telegram_id(self, telegram_id: int) -> User | None:
         """
-        Get user by Telegram ID.
+        Get user by Telegram ID with caching.
 
         Args:
             telegram_id: Telegram user ID
@@ -122,9 +127,23 @@ class UserService(BaseService):
         Returns:
             User | None: User if found, None otherwise
         """
+        # Try cache first
+        cache_key = f"user:telegram_id:{telegram_id}"
+        cached_user = await cache_service.get(cache_key)
+        if cached_user:
+            return cached_user
+
+        # Database query
         stmt = select(User).where(User.telegram_id == telegram_id)
         result = await self.session.execute(stmt)
-        return result.scalar_one_or_none()
+        user = result.scalar_one_or_none()
+        track_database_operation("select", "users")
+
+        # Cache result if found
+        if user:
+            await cache_service.set(cache_key, user, ttl=300)  # 5 minutes
+
+        return user
 
     async def activate_user(self, user: User) -> User:
         """
