@@ -7,12 +7,18 @@ RUN apk add --no-cache curl gcc musl-dev
 WORKDIR /app
 
 # Copy dependency files ONLY for optimal caching
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml ./
+# Copy uv.lock if it exists (optional for reproducible builds)
+COPY uv.lock* ./
 
 # Install dependencies with cache mounts for optimal performance
 RUN --mount=type=cache,target=/root/.cache/uv \
-  --mount=type=cache,target=/tmp/uv-cache \
-  uv sync --frozen --no-dev
+    --mount=type=cache,target=/tmp/uv-cache \
+    if [ -f "uv.lock" ]; then \
+        uv sync --frozen --no-dev; \
+    else \
+        uv sync --no-dev; \
+    fi
 
 # === RUNTIME STAGE ===
 FROM python:3.12-alpine AS runtime
