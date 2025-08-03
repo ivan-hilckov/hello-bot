@@ -502,7 +502,7 @@ async def enhanced_health_check():
         "status": overall_status,
         "checks": checks,
         "timestamp": time.time(),
-        "version": "1.0.0"
+        "version": "1.1.0"
     }
 
 @app.get("/metrics")

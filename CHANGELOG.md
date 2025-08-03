@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.1.0] - 2025-01-03
+
+### Added
+
+- **GitHub Template Support**: Complete transformation into GitHub template repository
+  - `.github/template.yml` - GitHub template configuration
+  - `scripts/setup-template.sh` - Interactive project initialization script
+  - `TEMPLATE_README.md` - Template-specific README with usage instructions
+  - `docs/TEMPLATE_USAGE.md` - Comprehensive template usage guide
+  - `TEMPLATE_SETUP.md` - Instructions for template maintainers
+
+- **Template Features**:
+  - Automatic project name replacement throughout all files
+  - Interactive setup with validation and confirmation
+  - Database and container name customization
+  - GitHub Actions workflow adaptation
+  - Documentation generation for new projects
+  - Template file cleanup after initialization
+
+- **Enhanced Template Architecture**:
+  - Universal bot greeting messages (removes Hello Bot specific text)
+  - Configurable project metadata in pyproject.toml
+  - Docker compose and container naming templates
+  - Version synchronization across all components
+
+### Changed
+
+- **Version Consistency**: Updated all components to version 1.1.0
+  - `app/__init__.py`, `app/main.py`, `app/webhook.py`
+  - `Dockerfile`, `docs/API.md`, `docs/DEPLOYMENT.md`
+  - Synchronized version reporting in health checks and logs
+
+- **Template Preparation**: Made repository ready for "Use this template" functionality
+  - Removed Hello Bot specific branding from core components
+  - Created reusable configuration patterns
+  - Established clear customization points for new projects
+
+### Fixed
+
+- **Template Compatibility**: Ensured all placeholder values can be safely replaced
+- **Setup Script Permissions**: Made setup script executable by default
+
 ## [v0.3.0] - 2025-01-03
 
 ### Added

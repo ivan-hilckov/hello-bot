@@ -58,7 +58,7 @@ HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --start-interval=2s --
 # Labels for metadata
 LABEL org.opencontainers.image.title="Hello Bot"
 LABEL org.opencontainers.image.description="Minimal Telegram bot for deployment testing"
-LABEL org.opencontainers.image.version="0.1.0"
+LABEL org.opencontainers.image.version="1.1.0"
 
 # Start the bot (migrations run separately)
 CMD ["python", "-m", "app.main"]

@@ -176,7 +176,7 @@ curl http://localhost:8000/health
     "memory_usage_mb": 245.6
   },
   "timestamp": 1703234567.89,
-  "version": "1.0.0"
+  "version": "1.1.0"
 }
 
 # Prometheus metrics

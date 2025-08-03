@@ -48,7 +48,7 @@ async def lifespan() -> AsyncGenerator[None, None]:
             component="main",
             environment=settings.environment,
             debug_mode=settings.debug,
-            version="1.0.0",
+            version="1.1.0",
         )
 
         # Initialize cache service

@@ -35,7 +35,7 @@ def create_webhook_app(bot: Bot, dp: Dispatcher) -> FastAPI:
     app = FastAPI(
         title="Hello Bot Webhook",
         description="Telegram Bot Webhook Server",
-        version="1.0.0",
+        version="1.1.0",
         docs_url=None if settings.is_production else "/docs",
         redoc_url=None if settings.is_production else "/redoc",
     )
@@ -161,7 +161,7 @@ def create_webhook_app(bot: Bot, dp: Dispatcher) -> FastAPI:
             "checks": checks,
             "response_time_ms": response_time,
             "timestamp": time.time(),
-            "version": "1.0.0",
+            "version": "1.1.0",
             "environment": settings.environment,
         }
 
