@@ -68,7 +68,7 @@ async def start_handler(message: types.Message, session: AsyncSession) -> None:
     user = await get_or_create_user(session, message.from_user)
 
     # Send greeting
-    greeting = f"Hello world test deploy, <b>{user.display_name}</b>"
+    greeting = f"Hello world test deploy 🪏, <b>{user.display_name}</b>"
     await message.answer(greeting, parse_mode=ParseMode.HTML)
 
     logger.info(f"Sent greeting to user: {user.display_name} (ID: {user.telegram_id})")
