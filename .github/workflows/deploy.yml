@@ -15,8 +15,8 @@ on:
           - staging
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  REGISTRY: docker.io
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/hello-bot
 
 jobs:
   # Test and lint code
@@ -67,18 +67,17 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Container Registry
+      - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -94,8 +93,13 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Enhanced caching strategy for Docker Hub
+          cache-from: |
+            type=registry,ref=${{ env.IMAGE_NAME }}:buildcache
+            type=gha
+          cache-to: |
+            type=registry,ref=${{ env.IMAGE_NAME }}:buildcache,mode=max
+            type=gha,mode=max
           build-args: |
             BUILDKIT_INLINE_CACHE=1
 
@@ -172,12 +176,10 @@ jobs:
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_ACTOR: ${{ github.actor }}
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           ENVIRONMENT: ${{ github.event.inputs.environment || 'production' }}
-          BOT_IMAGE: ghcr.io/${{ github.repository }}:latest
+          BOT_IMAGE: ${{ env.IMAGE_NAME }}:latest
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
           WEBHOOK_SECRET_TOKEN: ${{ secrets.WEBHOOK_SECRET_TOKEN }}
         with:
@@ -185,7 +187,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
-          envs: GITHUB_TOKEN,GITHUB_ACTOR,BOT_TOKEN,DB_PASSWORD,ENVIRONMENT,BOT_IMAGE,WEBHOOK_URL,WEBHOOK_SECRET_TOKEN
+          envs: BOT_TOKEN,DB_PASSWORD,ENVIRONMENT,BOT_IMAGE,WEBHOOK_URL,WEBHOOK_SECRET_TOKEN
           script: |
             cd /tmp/hello-bot-deploy
 
@@ -205,11 +207,8 @@ jobs:
             LOG_LEVEL=INFO
             EOF
 
-            # Now start the services with the correct .env file
-            echo "🔐 Logging in to GitHub Container Registry..."
-            echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
-
-            echo "📥 Pulling Docker images..."
+            # Pull Docker images from Docker Hub (better caching)
+            echo "📥 Pulling Docker images from Docker Hub..."
             docker compose --profile production pull
 
             echo "🛑 Stopping existing services..."

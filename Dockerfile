@@ -1,24 +1,41 @@
-# Production-ready Docker image for Hello Bot
-FROM python:3.11-slim
+# Multi-stage optimized Dockerfile for Hello Bot
+FROM python:3.11-slim as base
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-  && rm -rf /var/lib/apt/lists/*
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
 RUN groupadd -r botuser && useradd -r -g botuser botuser
 
 WORKDIR /app
 
-# Copy application code
+# === DEPENDENCY LAYER (cached unless dependencies change) ===
+FROM base as dependencies
+
+# Copy only dependency files first for better caching
+COPY pyproject.toml ./
+COPY uv.lock* ./
+
+# Install uv for faster dependency management
+RUN pip install uv
+
+# Install dependencies using pyproject.toml
+RUN uv pip install --system --no-cache-dir -e .
+
+# === RUNTIME LAYER ===
+FROM base as runtime
+
+# Copy installed packages from dependencies stage
+COPY --from=dependencies /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=dependencies /usr/local/bin /usr/local/bin
+
+# Copy application code (this layer changes most frequently)
 COPY --chown=botuser:botuser app/ ./app/
 COPY --chown=botuser:botuser alembic/ ./alembic/
 COPY --chown=botuser:botuser alembic.ini ./
 COPY --chown=botuser:botuser pyproject.toml ./
-COPY --chown=botuser:botuser uv.lock* ./
-
-# Install dependencies directly with pip
-RUN pip install aiogram python-dotenv pydantic pydantic-settings sqlalchemy[asyncio] asyncpg alembic
 
 # Switch to non-root user
 USER botuser
