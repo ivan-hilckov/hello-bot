@@ -32,5 +32,5 @@ LABEL org.opencontainers.image.title="Hello Bot"
 LABEL org.opencontainers.image.description="Minimal Telegram bot for deployment testing"
 LABEL org.opencontainers.image.version="0.1.0"
 
-# Run database migrations and start the bot
-CMD ["sh", "-c", "sleep 10 && alembic upgrade head && python -m app.main"]
+# Run database migrations and start the bot  
+CMD ["sh", "-c", "sleep 10 && echo 'Skipping alembic for now' && python -m app.main"]

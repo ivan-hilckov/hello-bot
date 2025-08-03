@@ -46,6 +46,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: hello_bot_app
+    env_file: .env
     environment:
       # Database configuration
       DATABASE_URL: postgresql+asyncpg://hello_user:${DB_PASSWORD:-dev_password}@postgres:5432/hello_bot
