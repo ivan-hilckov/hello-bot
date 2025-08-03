@@ -132,18 +132,17 @@ jobs:
           echo "🚀 Starting Hello Bot deployment..."
 
           # Set deployment directory
-          DEPLOY_DIR="/opt/hello-bot"
-          BACKUP_DIR="/opt/hello-bot-backup"
+          DEPLOY_DIR="$HOME/hello-bot"
+          BACKUP_DIR="$HOME/hello-bot-backup"
 
           # Create deployment directory if it doesn't exist
-          sudo mkdir -p "$DEPLOY_DIR"
-          sudo chown $USER:$USER "$DEPLOY_DIR"
+          mkdir -p "$DEPLOY_DIR"
 
           # Backup current deployment
           if [ -d "$DEPLOY_DIR/docker-compose.yml" ]; then
             echo "📦 Creating backup..."
-            sudo rm -rf "$BACKUP_DIR" || true
-            sudo cp -r "$DEPLOY_DIR" "$BACKUP_DIR" || true
+            rm -rf "$BACKUP_DIR" || true
+            cp -r "$DEPLOY_DIR" "$BACKUP_DIR" || true
           fi
 
           # Copy new files
@@ -239,7 +238,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
           script: |
-            cd /opt/hello-bot
+            cd $HOME/hello-bot
 
             echo "🔍 Final verification..."
 
