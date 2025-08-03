@@ -144,13 +144,15 @@ class DatabaseMiddleware(BaseMiddleware):
 - **Library Documentation**: For aiogram, SQLAlchemy, FastAPI specifics
 - **Best Practices**: When implementing new patterns or features
 - **Troubleshooting**: For complex framework-specific issues
+- **Modern Patterns**: Router systems, async patterns, concurrency best practices
 
 ### Common Tasks
 
-1. **Adding Commands**: Create handlers with proper dependency injection
+1. **Adding Commands**: Create handlers with proper dependency injection (prefer Router pattern)
 2. **Database Changes**: Models → Migration → Handler updates
-3. **Performance Issues**: Check connection pools, memory usage, query optimization
+3. **Performance Issues**: Check connection pools, AsyncSession concurrency, memory usage
 4. **Deployment Issues**: Review GitHub Actions logs, VPS resources, health checks
+5. **Modernization**: Migrate to Router pattern, implement advanced filters, optimize async patterns
 
 ## Constraints & Limitations
 

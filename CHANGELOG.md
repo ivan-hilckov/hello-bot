@@ -10,11 +10,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Documentation Restructure**: Complete documentation reorganization for better clarity
+
   - New `docs/ARCHITECTURE.md` with technical details and dependencies
   - New `docs/DATABASE.md` with schema diagrams and model documentation
   - New `docs/API.md` with bot commands and handler documentation
   - Mermaid diagrams for database schema and application flow
   - Clear separation of development vs production documentation
+
+- **Enhanced Documentation with Modern Best Practices**:
+
+  - **aiogram 3.0+ Router Pattern**: Added Router concept and modular handler organization
+  - **Advanced Dependency Injection**: Enhanced DI patterns with type hints and custom providers
+  - **AsyncSession Concurrency**: Critical safety guidelines for session-per-task pattern
+  - **Modern Filters**: Custom filter classes and composable filter expressions
+  - **Alembic Async Patterns**: Modern env.py configuration for async applications
+  - **Post-Write Hooks**: Code quality automation with ruff integration
+  - **Connection Pool Optimization**: Production-ready database settings for 2GB VPS
+
+- **AI Development Guide**: New `CLAUDE.md` with comprehensive guide for working with Claude AI assistant
+  - **Effective Prompting**: Best practices for AI-assisted development
+  - **Project-Specific Guidelines**: Context-aware development patterns
+  - **Common Scenarios**: Ready-to-use prompts for typical development tasks
+  - **Emergency Procedures**: Quick diagnostic and troubleshooting guidance
+  - **Integration Tips**: Seamless workflow with Cursor IDE and development tools
 
 ### Changed
 

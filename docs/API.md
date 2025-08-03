@@ -148,6 +148,78 @@ dp.message.register(start_handler, Command("start"))
 dp.message.register(default_handler)
 ```
 
+### Modern Router Pattern (aiogram 3.0+)
+
+**Modular Organization with Routers**:
+
+```python
+# app/handlers/start.py
+from aiogram import Router
+from aiogram.filters import Command
+
+start_router = Router()
+
+@start_router.message(Command("start"))
+async def start_handler(message: types.Message, session: AsyncSession) -> None:
+    """Handle /start command using Router pattern."""
+    if not message.from_user:
+        await message.answer("Hello world, <b>Unknown</b>", parse_mode=ParseMode.HTML)
+        return
+
+    user = await get_or_create_user(session, message.from_user)
+    greeting = f"Hello world test deploy 🪏, <b>{user.display_name}</b>"
+    await message.answer(greeting, parse_mode=ParseMode.HTML)
+
+# app/main.py
+def create_dispatcher() -> Dispatcher:
+    """Create dispatcher with Router pattern."""
+    dp = Dispatcher()
+
+    # Add middleware
+    dp.message.middleware(DatabaseMiddleware())
+
+    # Include routers (modern approach)
+    dp.include_router(start_router)
+    dp.include_router(common_router)
+
+    return dp
+```
+
+### Advanced Filters
+
+**Custom Filters for Fine-Grained Control**:
+
+```python
+from aiogram.filters import BaseFilter
+
+class UserTypeFilter(BaseFilter):
+    """Filter messages by user type."""
+
+    def __init__(self, user_type: str):
+        self.user_type = user_type
+
+    async def __call__(self, message: types.Message, session: AsyncSession) -> bool:
+        if not message.from_user:
+            return False
+
+        user = await get_user(session, message.from_user.id)
+        return user and user.user_type == self.user_type
+
+# Usage in Router
+@start_router.message(Command("admin"), UserTypeFilter("admin"))
+async def admin_handler(message: types.Message, session: AsyncSession) -> None:
+    await message.answer("Admin panel access granted")
+
+# Built-in filters combination
+@start_router.message(
+    Command("start"),
+    F.chat.type == "private",  # Only in private chats
+    F.from_user.is_bot == False  # Not from bots
+)
+async def private_start_handler(message: types.Message) -> None:
+    await message.answer("Private start command")
+```
+
 ## Middleware
 
 ### Database Middleware

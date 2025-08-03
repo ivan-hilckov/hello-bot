@@ -78,6 +78,7 @@ Development Mode          Production Mode
 - **[Architecture](docs/ARCHITECTURE.md)** - Technical architecture & dependencies
 - **[Database](docs/DATABASE.md)** - Database models & schema
 - **[Bot API](docs/API.md)** - Bot commands & handlers
+- **[Working with Claude](CLAUDE.md)** - AI assistant collaboration guide
 
 ## Performance
 

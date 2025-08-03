@@ -7,51 +7,51 @@ Technical overview of Hello Bot application architecture, dependencies, and impl
 ```mermaid
 graph TD
     A[User sends message to Telegram Bot] --> B{Environment?}
-    
+
     B -->|Development| C[Polling Mode<br/>Bot polls Telegram API]
     B -->|Production| D[Webhook Mode<br/>Telegram sends to FastAPI]
-    
+
     C --> E[aiogram Dispatcher]
     D --> E
-    
+
     E --> F[Database Middleware<br/>Injects AsyncSession]
     F --> G{Message Handler}
-    
+
     G -->|/start command| H[Start Handler<br/>app/handlers/start.py]
     G -->|Other messages| I[Default Handler<br/>app/handlers/common.py]
-    
+
     H --> J[Get/Create User<br/>PostgreSQL via SQLAlchemy]
     I --> K[Send generic response]
-    
+
     J --> L[Send personalized greeting]
-    
+
     subgraph "Database Layer"
         M[PostgreSQL 15<br/>Container: postgres]
         N[SQLAlchemy 2.0 Async]
         O[Alembic Migrations]
         P[User Model<br/>app/database/models/user.py]
     end
-    
+
     J --> N
     N --> M
     O --> M
     N --> P
-    
+
     subgraph "Configuration"
         Q[Pydantic Settings<br/>app/config.py]
         R[Environment Variables<br/>.env file]
     end
-    
+
     Q --> R
     E --> Q
-    
+
     subgraph "Production Infrastructure"
         S[Docker Compose<br/>Container Orchestration]
         T[Health Checks<br/>5s intervals]
         U[GitHub Actions<br/>CI/CD Pipeline]
         V[VPS Deployment<br/>2GB RAM optimized]
     end
-    
+
     S --> M
     S --> D
     T --> D
@@ -104,19 +104,21 @@ hello-bot/
 ### 1. Application Entry Point (`app/main.py`)
 
 **Key Features:**
+
 - **Dual Mode Operation**: Polling (dev) vs Webhook (production)
 - **Graceful Shutdown**: Signal handling (SIGTERM, SIGINT)
 - **Performance Optimization**: uvloop on Linux systems
 - **Lifespan Management**: Database initialization and cleanup
 
 **Flow:**
+
 ```python
 async def main():
     setup_logging()
     async with lifespan():
         bot = create_bot()
         dp = create_dispatcher()
-        
+
         if settings.is_production and settings.webhook_url:
             # Production: FastAPI webhook server
             app = create_webhook_app(bot, dp)
@@ -132,12 +134,14 @@ async def main():
 **Technology:** Pydantic Settings with environment file support
 
 **Configuration Categories:**
+
 - **Bot Settings**: `bot_token`, Telegram API configuration
 - **Database**: `database_url`, connection pooling settings
 - **Application**: `environment`, `debug`, `log_level`
 - **Webhook**: `webhook_url`, `webhook_secret_token`, server settings
 
 **Environment-Specific Behavior:**
+
 ```python
 @property
 def is_production(self) -> bool:
@@ -149,12 +153,14 @@ def is_production(self) -> bool:
 **Architecture:** SQLAlchemy 2.0 Async + asyncpg
 
 **Components:**
+
 - **Base Model** (`app/database/base.py`): Common functionality
 - **Session Management** (`app/database/session.py`): Connection pooling
 - **Models** (`app/database/models/`): Data models
 - **Migrations** (`alembic/`): Schema versioning
 
 **Session Management:**
+
 ```python
 engine = create_async_engine(
     settings.database_url,
@@ -164,67 +170,132 @@ engine = create_async_engine(
 )
 ```
 
+**Critical: AsyncSession Concurrency Safety**
+
+```python
+# ❌ NEVER share AsyncSession between concurrent tasks
+async def bad_pattern():
+    session = AsyncSession(engine)
+
+    # This will cause IllegalStateChangeError and data corruption
+    tasks = [
+        asyncio.create_task(process_user(session, user_id))
+        for user_id in user_ids
+    ]
+    await asyncio.gather(*tasks)
+
+# ✅ CORRECT: Each task gets its own AsyncSession
+async def correct_pattern():
+    tasks = []
+    for user_id in user_ids:
+        # Create new session for each task
+        async with AsyncSessionLocal() as session:
+            task = asyncio.create_task(process_user(session, user_id))
+            tasks.append(task)
+
+    await asyncio.gather(*tasks)
+```
+
 ### 4. Message Handling
 
 **Framework:** aiogram 3.0+ with async/await
 
-**Handler Structure:**
-```python
-# Middleware injection
-dp.message.middleware(DatabaseMiddleware())
+**Modern Architecture Pattern:**
 
-# Handler registration
+```python
+# Using Router for modular organization (aiogram 3.0+ best practice)
+from aiogram import Router
+
+# Create router for start commands
+start_router = Router()
+
+@start_router.message(Command("start"))
+async def start_handler(message: types.Message, session: AsyncSession):
+    user = await get_or_create_user(session, message.from_user)
+    await message.answer(f"Hello, {user.display_name}")
+
+# Include router in dispatcher
+dp.include_router(start_router)
+```
+
+**Legacy Handler Registration:**
+
+```python
+# Alternative: Direct registration (used in Hello Bot)
 dp.message.register(start_handler, Command("start"))
 dp.message.register(default_handler)  # Catch-all
 ```
 
 **Database Integration:**
+
 ```python
 async def start_handler(message: types.Message, session: AsyncSession):
     user = await get_or_create_user(session, message.from_user)
     await message.answer(f"Hello, {user.display_name}")
 ```
 
+**Dependency Injection via Type Hints:**
+
+```python
+# aiogram 3.0+ automatically injects dependencies based on type hints
+async def handler(message: types.Message, session: AsyncSession, bot: Bot):
+    # session injected by DatabaseMiddleware
+    # bot injected automatically by aiogram
+    pass
+
+# Custom dependency injection
+@dp.message.middleware()
+async def custom_dependency_middleware(handler, event, data):
+    data["custom_service"] = MyService()
+    return await handler(event, data)
+
+async def handler_with_custom_dep(message: types.Message, custom_service: MyService):
+    result = custom_service.process()
+    await message.answer(result)
+```
+
 ## Dependencies & Libraries
 
 ### Core Dependencies
 
-| Package | Version | Purpose | Documentation |
-|---------|---------|---------|---------------|
-| **aiogram** | >=3.0.0 | Telegram Bot API framework | [docs.aiogram.dev](https://docs.aiogram.dev/) |
-| **sqlalchemy** | >=2.0.0 | Async ORM for PostgreSQL | [docs.sqlalchemy.org](https://docs.sqlalchemy.org/) |
-| **asyncpg** | >=0.29.0 | PostgreSQL async driver | [magicstack.github.io/asyncpg](https://magicstack.github.io/asyncpg/) |
-| **pydantic** | >=2.0.0 | Settings & data validation | [docs.pydantic.dev](https://docs.pydantic.dev/) |
-| **fastapi** | >=0.104.0 | Webhook server (production) | [fastapi.tiangolo.com](https://fastapi.tiangolo.com/) |
-| **uvicorn** | >=0.24.0 | ASGI server | [uvicorn.org](https://uvicorn.org/) |
-| **alembic** | >=1.13.0 | Database migrations | [alembic.sqlalchemy.org](https://alembic.sqlalchemy.org/) |
+| Package        | Version   | Purpose                     | Documentation                                                         |
+| -------------- | --------- | --------------------------- | --------------------------------------------------------------------- |
+| **aiogram**    | >=3.0.0   | Telegram Bot API framework  | [docs.aiogram.dev](https://docs.aiogram.dev/)                         |
+| **sqlalchemy** | >=2.0.0   | Async ORM for PostgreSQL    | [docs.sqlalchemy.org](https://docs.sqlalchemy.org/)                   |
+| **asyncpg**    | >=0.29.0  | PostgreSQL async driver     | [magicstack.github.io/asyncpg](https://magicstack.github.io/asyncpg/) |
+| **pydantic**   | >=2.0.0   | Settings & data validation  | [docs.pydantic.dev](https://docs.pydantic.dev/)                       |
+| **fastapi**    | >=0.104.0 | Webhook server (production) | [fastapi.tiangolo.com](https://fastapi.tiangolo.com/)                 |
+| **uvicorn**    | >=0.24.0  | ASGI server                 | [uvicorn.org](https://uvicorn.org/)                                   |
+| **alembic**    | >=1.13.0  | Database migrations         | [alembic.sqlalchemy.org](https://alembic.sqlalchemy.org/)             |
 
 ### Performance Dependencies
 
-| Package | Purpose | Platform |
-|---------|---------|----------|
-| **uvloop** | Faster async event loop | Linux/macOS only |
-| **python-dotenv** | Environment file loading | All platforms |
+| Package           | Purpose                  | Platform         |
+| ----------------- | ------------------------ | ---------------- |
+| **uvloop**        | Faster async event loop  | Linux/macOS only |
+| **python-dotenv** | Environment file loading | All platforms    |
 
 ### Development Dependencies
 
-| Package | Purpose |
-|---------|---------|
-| **ruff** | Code formatting & linting |
-| **pytest** | Testing framework |
-| **pytest-asyncio** | Async test support |
+| Package            | Purpose                   |
+| ------------------ | ------------------------- |
+| **ruff**           | Code formatting & linting |
+| **pytest**         | Testing framework         |
+| **pytest-asyncio** | Async test support        |
 
 ## Environment Modes
 
 ### Development Mode
 
 **Characteristics:**
+
 - **Polling Mode**: Bot actively polls Telegram API
 - **Debug Logging**: SQL queries, detailed logs
 - **Hot Reload**: Code changes trigger restart
 - **Local Database**: PostgreSQL in Docker container
 
 **Configuration:**
+
 ```env
 ENVIRONMENT=development
 DEBUG=true
@@ -232,6 +303,7 @@ LOG_LEVEL=DEBUG
 ```
 
 **Startup Flow:**
+
 ```python
 # Development: polling mode
 await bot.delete_webhook(drop_pending_updates=True)
@@ -241,12 +313,14 @@ await dp.start_polling(bot, handle_signals=False)
 ### Production Mode
 
 **Characteristics:**
+
 - **Webhook Mode**: Telegram sends updates to FastAPI server
 - **Optimized Logging**: Reduced verbosity, performance focus
 - **Health Checks**: Container health monitoring
 - **Resource Limits**: Memory/CPU constraints for 2GB VPS
 
 **Configuration:**
+
 ```env
 ENVIRONMENT=production
 DEBUG=false
@@ -255,6 +329,7 @@ WEBHOOK_URL=https://your-domain.com/webhook
 ```
 
 **Startup Flow:**
+
 ```python
 # Production: webhook mode
 await bot.set_webhook(url=settings.webhook_url, secret_token=settings.webhook_secret_token)
@@ -268,6 +343,7 @@ await server.serve()
 ### 2GB RAM VPS Optimizations
 
 **Database Configuration:**
+
 ```yaml
 # docker-compose.yml
 postgres:
@@ -280,6 +356,7 @@ postgres:
 ```
 
 **Application Configuration:**
+
 ```yaml
 bot:
   deploy:
@@ -295,6 +372,7 @@ bot:
 ```
 
 **Health Check Optimization:**
+
 ```yaml
 healthcheck:
   interval: 5s
@@ -306,6 +384,7 @@ healthcheck:
 ### Code Optimizations
 
 **Async Event Loop:**
+
 ```python
 # Use uvloop for better performance on Linux
 try:
@@ -317,6 +396,7 @@ except ImportError:
 ```
 
 **Database Session Management:**
+
 ```python
 # Middleware handles session lifecycle
 class DatabaseMiddleware(BaseMiddleware):
@@ -349,10 +429,36 @@ class DatabaseMiddleware(BaseMiddleware):
 
 ```yaml
 services:
-  postgres:      # Database server
-  migration:     # One-time migration job
-  bot:          # Main application
+  postgres: # Database server
+  migration: # One-time migration job
+  bot: # Main application
 ```
+
+### Modern aiogram 3.0+ Features Used
+
+**Router System:**
+
+- Modular handler organization
+- Better code separation and maintainability
+- Simplified testing and debugging
+
+**Enhanced Dependency Injection:**
+
+- Type-hint based automatic injection
+- Custom dependency providers via middleware
+- Cleaner handler signatures
+
+**Advanced Filters:**
+
+- Built-in filter combinations with `F` object
+- Custom filter classes for complex logic
+- Composable filter expressions
+
+**Session Management:**
+
+- Proper AsyncSession-per-task pattern
+- Connection pooling optimization
+- Graceful error handling and rollbacks
 
 ### CI/CD Pipeline
 
@@ -362,12 +468,12 @@ services:
 
 ### VPS Resource Allocation
 
-| Component | Memory | CPU | Purpose |
-|-----------|--------|-----|---------|
-| PostgreSQL | 512MB | Shared | Database server |
-| Bot App | 256MB | Shared | Telegram bot application |
-| System | ~1GB | Shared | OS + Docker overhead |
-| **Total** | **~1.8GB** | **2 cores** | **Fits 2GB VPS** |
+| Component  | Memory     | CPU         | Purpose                  |
+| ---------- | ---------- | ----------- | ------------------------ |
+| PostgreSQL | 512MB      | Shared      | Database server          |
+| Bot App    | 256MB      | Shared      | Telegram bot application |
+| System     | ~1GB       | Shared      | OS + Docker overhead     |
+| **Total**  | **~1.8GB** | **2 cores** | **Fits 2GB VPS**         |
 
 ## Monitoring & Logging
 
@@ -390,6 +496,6 @@ async def health_check():
 ### Performance Metrics
 
 - **Startup Time**: Application initialization duration
-- **Response Time**: Message handling latency  
+- **Response Time**: Message handling latency
 - **Memory Usage**: Container resource consumption
 - **Database Performance**: Connection pool utilization
