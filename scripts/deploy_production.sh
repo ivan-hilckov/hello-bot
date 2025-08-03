@@ -169,6 +169,11 @@ stop_existing_services() {
 run_database_migration() {
     log_info "Running database migration..."
     
+    # Ensure Docker network exists before migration
+    local network_name="${PROJECT_NAME:-telegram_bot}_network"
+    log_info "Creating Docker network: $network_name"
+    docker network create "$network_name" 2>/dev/null || log_info "Network $network_name already exists"
+    
     # Try to run migration normally first
     if docker compose --profile migration up --exit-code-from migration migration 2>/dev/null; then
         log_success "Database migration completed successfully"
@@ -202,6 +207,10 @@ run_database_migration() {
 # Start services
 start_services() {
     log_info "Starting services..."
+    
+    # Ensure Docker network exists before starting services
+    local network_name="${PROJECT_NAME:-telegram_bot}_network"
+    docker network create "$network_name" 2>/dev/null || true
     
     docker compose --profile production up -d --remove-orphans
     
