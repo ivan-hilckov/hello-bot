@@ -5,6 +5,7 @@ Handler for /start command.
 import logging
 
 from aiogram import types
+from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -60,15 +61,15 @@ async def get_or_create_user(session: AsyncSession, telegram_user: types.User) -
 async def start_handler(message: types.Message, session: AsyncSession) -> None:
     """Handle /start command."""
     if not message.from_user:
-        await message.answer("Hello world, ***Unknown***")
+        await message.answer("Hello world, <b>Unknown</b>", parse_mode=ParseMode.HTML)
         return
 
     # Get or create user in database
     user = await get_or_create_user(session, message.from_user)
 
     # Send greeting
-    greeting = f"Hello world, ***{user.display_name}***"
-    await message.answer(greeting)
+    greeting = f"Hello world, <b>{user.display_name}</b>"
+    await message.answer(greeting, parse_mode=ParseMode.HTML)
 
     logger.info(f"Sent greeting to user: {user.display_name} (ID: {user.telegram_id})")
 

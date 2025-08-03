@@ -40,7 +40,7 @@ services:
     networks:
       - hello_bot_network
 
-  # Telegram Bot Application (Optimized for 2GB RAM)
+  # Telegram Bot Application (Production)
   bot:
     build: 
       context: .
@@ -87,6 +87,50 @@ services:
       timeout: 15s
       retries: 3
       start_period: 30s
+    profiles:
+      - production
+
+  # Telegram Bot Application (Development with Hot Reloading)
+  bot-dev:
+    build: 
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: hello_bot_dev
+    env_file: .env
+    environment:
+      # Database configuration
+      DATABASE_URL: postgresql+asyncpg://hello_user:${DB_PASSWORD:-dev_password}@postgres:5432/hello_bot
+      
+      # Bot configuration
+      BOT_TOKEN: ${BOT_TOKEN}
+      
+      # Application settings (development)
+      ENVIRONMENT: development
+      DEBUG: true
+      LOG_LEVEL: DEBUG
+      
+      # Database settings for development
+      DB_POOL_SIZE: 2
+      DB_MAX_OVERFLOW: 3
+      
+      # Python settings for development
+      PYTHONUNBUFFERED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+    volumes:
+      # Mount source code for hot reloading
+      - ./app:/app/app
+      - ./scripts:/app/scripts
+      - ./alembic:/app/alembic
+      - ./alembic.ini:/app/alembic.ini
+      - ./pyproject.toml:/app/pyproject.toml
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - hello_bot_network
+    profiles:
+      - development
 
   # Optional: Adminer for database management (development only)
   adminer:

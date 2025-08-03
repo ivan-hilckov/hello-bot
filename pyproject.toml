@@ -37,6 +37,7 @@ dev = [
     
     # Development tools
     "ipython>=8.0.0",
+    "watchfiles>=0.22.0",  # File watching for hot reloading
 ]
 
 prod = [

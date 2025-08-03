@@ -89,7 +89,7 @@ def create_bot() -> Bot:
     bot = Bot(
         token=settings.bot_token,
         default=DefaultBotProperties(
-            parse_mode=ParseMode.HTML,
+            parse_mode=ParseMode.MARKDOWN,
         ),
     )
 
