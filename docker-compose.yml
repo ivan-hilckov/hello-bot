@@ -42,9 +42,7 @@ services:
 
   # Telegram Bot Application (Production)
   bot:
-    build: 
-      context: .
-      dockerfile: Dockerfile
+    image: ${BOT_IMAGE:-ghcr.io/ivan-hilckov/hello-bot:latest}
     container_name: hello_bot_app
     env_file: .env
     environment:
