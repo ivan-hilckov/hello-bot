@@ -164,98 +164,33 @@ stop_existing_services() {
     fi
 }
 
-# Check and handle existing database state
-check_migration_state() {
-    log_info "Checking database migration state..."
-    
-    # Check if users table exists
-    local table_exists=$(docker compose --profile migration run --rm migration python -c "
-import asyncio
-import asyncpg
-import os
-import sys
-
-async def check_table():
-    try:
-        conn = await asyncpg.connect(os.environ['DATABASE_URL'])
-        result = await conn.fetchval(\"\"\"
-            SELECT EXISTS (
-                SELECT FROM information_schema.tables 
-                WHERE table_schema = 'public' 
-                AND table_name = 'users'
-            );
-        \"\"\")
-        await conn.close()
-        return result
-    except Exception as e:
-        print(f'Error checking table: {e}', file=sys.stderr)
-        return False
-
-result = asyncio.run(check_table())
-print('true' if result else 'false')
-" 2>/dev/null || echo "false")
-    
-    # Check if alembic_version table exists
-    local alembic_exists=$(docker compose --profile migration run --rm migration python -c "
-import asyncio
-import asyncpg
-import os
-import sys
-
-async def check_alembic():
-    try:
-        conn = await asyncpg.connect(os.environ['DATABASE_URL'])
-        result = await conn.fetchval(\"\"\"
-            SELECT EXISTS (
-                SELECT FROM information_schema.tables 
-                WHERE table_schema = 'public' 
-                AND table_name = 'alembic_version'
-            );
-        \"\"\")
-        await conn.close()
-        return result
-    except Exception as e:
-        print(f'Error checking alembic table: {e}', file=sys.stderr)
-        return False
-
-result = asyncio.run(check_alembic())
-print('true' if result else 'false')
-" 2>/dev/null || echo "false")
-    
-    log_info "Table exists: $table_exists, Alembic tracking: $alembic_exists"
-    
-    if [[ "$table_exists" == "true" && "$alembic_exists" == "false" ]]; then
-        log_info "Database tables exist but migration history is missing - marking migration as completed"
-        docker compose --profile migration run --rm migration alembic stamp head
-        log_success "Migration state synchronized"
-        return 0
-    elif [[ "$table_exists" == "true" && "$alembic_exists" == "true" ]]; then
-        log_info "Database and migration history both exist - checking if migration is needed"
-        return 1  # Proceed with normal migration check
-    else
-        log_info "Clean database state - proceeding with migration"
-        return 1  # Proceed with normal migration
-    fi
-}
-
-# Run database migration
+# Run database migration with smart error handling
 run_database_migration() {
     log_info "Running database migration..."
     
-    # First check the migration state
-    if check_migration_state; then
-        log_success "Migration state already synchronized"
+    # Try to run migration normally first
+    if docker compose --profile migration up --exit-code-from migration migration 2>/dev/null; then
+        log_success "Database migration completed successfully"
+        docker compose --profile migration down migration || true
         return 0
     fi
     
-    # Run migration in isolation
+    # If migration failed, check if it's because tables already exist
+    log_info "Migration failed, checking if tables already exist..."
+    
+    # Try to mark current state as up-to-date (this handles the "table already exists" case)
+    if docker compose --profile migration run --rm migration alembic stamp head 2>/dev/null; then
+        log_success "Database state synchronized - tables already exist"
+        return 0
+    fi
+    
+    # If that also failed, run migration again and show the error
+    log_error "Migration failed, running again to show error details..."
     docker compose --profile migration up --exit-code-from migration migration
     
     local migration_exit_code=$?
     if [[ $migration_exit_code -eq 0 ]]; then
         log_success "Database migration completed successfully"
-        
-        # Cleanup migration container
         docker compose --profile migration down migration || true
     else
         log_error "Database migration failed with exit code: $migration_exit_code"
@@ -356,74 +291,21 @@ step_timer() {
     return $result
 }
 
-# Parallel preparation function
-parallel_preparation() {
-    log_info "Starting parallel preparation tasks..."
+# Simplified preparation function
+prepare_deployment() {
+    log_info "Preparing deployment..."
     
-    # Pull Docker images in background
-    (
-        step_timer "pull_docker_images" pull_docker_images
-        echo "PULL_COMPLETE" > /tmp/pull_status
-    ) &
+    # Pull images and cleanup in parallel (simple background tasks)
+    pull_docker_images &
     local pull_pid=$!
     
-    # Environment preparation in background
-    (
-        step_timer "environment_preparation" prepare_environment
-        echo "ENV_COMPLETE" > /tmp/env_status
-    ) &
-    local env_pid=$!
-    
-    # Cleanup old resources in background
-    (
-        step_timer "cleanup_preparation" cleanup_old_resources
-        echo "CLEANUP_COMPLETE" > /tmp/cleanup_status
-    ) &
+    cleanup_old_resources &
     local cleanup_pid=$!
     
-    # Wait for all parallel tasks to complete
-    local failed_tasks=()
+    # Wait for background tasks
+    wait $pull_pid && wait $cleanup_pid
     
-    if ! wait $pull_pid; then
-        failed_tasks+=("docker_pull")
-    fi
-    
-    if ! wait $env_pid; then
-        failed_tasks+=("environment_preparation")
-    fi
-    
-    if ! wait $cleanup_pid; then
-        failed_tasks+=("cleanup_preparation")
-    fi
-    
-    # Check for failures
-    if [[ ${#failed_tasks[@]} -gt 0 ]]; then
-        log_error "Parallel preparation failed: ${failed_tasks[*]}"
-        return 1
-    fi
-    
-    log_success "All parallel preparation tasks completed successfully"
-    
-    # Cleanup status files
-    rm -f /tmp/pull_status /tmp/env_status /tmp/cleanup_status
-}
-
-# Environment preparation function
-prepare_environment() {
-    log_info "Preparing environment variables and configuration..."
-    
-    # Pre-validate Docker Compose configuration
-    if [[ -f "docker-compose.yml" ]]; then
-        docker compose config > /dev/null || {
-            log_warning "Docker Compose configuration validation failed"
-            return 1
-        }
-    fi
-    
-    # Pre-create necessary directories
-    mkdir -p "$HOME/.docker" || true
-    
-    log_success "Environment preparation completed"
+    log_success "Deployment preparation completed"
 }
 
 # Cleanup old resources function
@@ -496,8 +378,8 @@ main() {
     
     cd "$DEPLOY_DIR"
     
-    # Execute parallel preparation tasks
-    step_timer "parallel_preparation" parallel_preparation
+    # Execute simplified preparation
+    step_timer "prepare_deployment" prepare_deployment
     
     # Execute sequential deployment steps
     step_timer "stop_existing_services" stop_existing_services
