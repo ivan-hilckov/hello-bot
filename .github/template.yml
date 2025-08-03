@@ -1,0 +1,40 @@
+# GitHub Template Configuration
+# This file configures the repository template settings
+
+# Template metadata
+name: "Telegram Bot Template"
+description: "Production-ready Telegram bot template with PostgreSQL, Docker, and CI/CD"
+tags:
+  - telegram
+  - bot
+  - python
+  - docker
+  - postgresql
+  - fastapi
+  - aiogram
+  - template
+
+# Files to exclude when creating from template
+exclude:
+  - CHANGELOG.md
+  - TODO.md
+  - hello_bot.egg-info/
+  - .github/template.yml
+
+# Default branch for new repositories
+default_branch: main
+
+# Repository settings for new projects
+repository:
+  has_issues: true
+  has_projects: false
+  has_wiki: false
+  has_downloads: true
+  has_pages: false
+  auto_init: false
+  gitignore_template: "Python"
+  license_template: "mit"
+  allow_squash_merge: true
+  allow_merge_commit: false
+  allow_rebase_merge: true
+  delete_branch_on_merge: true
