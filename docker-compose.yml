@@ -1,4 +1,4 @@
-version: "3.8"
+
 
 services:
   # PostgreSQL Database (Optimized for 2GB RAM)

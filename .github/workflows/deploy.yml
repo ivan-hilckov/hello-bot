@@ -159,21 +159,21 @@ jobs:
 
           # Pull latest images
           echo "📥 Pulling Docker images..."
-          docker compose pull
+          docker compose --profile production pull
 
           # Stop existing services gracefully
           echo "🛑 Stopping existing services..."
-          docker compose down --timeout 30 || true
+          docker compose --profile production down --timeout 30 || true
 
           # Start services
           echo "🚀 Starting services..."
-          docker compose up -d --remove-orphans
+          docker compose --profile production up -d --remove-orphans
 
           # Wait for services to be healthy
           echo "🔍 Waiting for services to be healthy..."
-          timeout 300 docker compose exec -T bot python -c "from app.config import settings; print('Bot configuration OK')" || {
+          timeout 300 docker compose --profile production exec -T bot python -c "from app.config import settings; print('Bot configuration OK')" || {
             echo "❌ Health check failed"
-            docker compose logs
+            docker compose --profile production logs
             exit 1
           }
 
@@ -185,7 +185,7 @@ jobs:
 
           # Show status
           echo "📊 Service Status:"
-          docker compose ps
+          docker compose --profile production ps
           EOF
 
           chmod +x deploy/deploy.sh
@@ -243,18 +243,18 @@ jobs:
             echo "🔍 Final verification..."
 
             # Check if services are running
-            if ! docker compose ps | grep -q "Up"; then
+            if ! docker compose --profile production ps | grep -q "Up"; then
               echo "❌ Services are not running properly"
-              docker compose logs --tail=50
+              docker compose --profile production logs --tail=50
               exit 1
             fi
 
             # Check bot health
-            if ! docker compose exec -T bot python -c "from app.config import settings; print('✅ Bot is healthy')"; then
+            if ! docker compose --profile production exec -T bot python -c "from app.config import settings; print('✅ Bot is healthy')"; then
               echo "❌ Bot health check failed"
               exit 1
             fi
 
             echo "✅ Deployment verification successful!"
             echo "📊 Current status:"
-            docker compose ps
+            docker compose --profile production ps
