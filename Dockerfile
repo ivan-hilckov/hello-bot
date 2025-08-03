@@ -13,12 +13,12 @@ COPY uv.lock* ./
 
 # Install dependencies with cache mounts for optimal performance
 RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=cache,target=/tmp/uv-cache \
-    if [ -f "uv.lock" ]; then \
-        uv sync --frozen --no-dev; \
-    else \
-        uv sync --no-dev; \
-    fi
+  --mount=type=cache,target=/tmp/uv-cache \
+  if [ -f "uv.lock" ]; then \
+  uv sync --frozen --no-dev; \
+  else \
+  uv sync --no-dev; \
+  fi
 
 # === RUNTIME STAGE ===
 FROM python:3.12-alpine AS runtime
