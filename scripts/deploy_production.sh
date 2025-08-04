@@ -205,9 +205,15 @@ run_database_migration() {
     # If migration failed, assume it's a password issue and recreate database
     log_warning "Migration failed - recreating database with fresh credentials..."
     
-    # Stop database and remove volume to reset password
-    docker compose --profile production --profile migration down postgres || true
+    # Stop all services and clean up completely
+    docker compose --profile production --profile migration down --volumes --remove-orphans || true
+    
+    # Explicitly remove volume and network to ensure clean state
     docker volume rm "${PROJECT_NAME}_postgres_data" 2>/dev/null || log_info "No existing volume to remove"
+    docker network rm "${PROJECT_NAME}_network" 2>/dev/null || log_info "No existing network to remove"
+    
+    # Wait a moment for Docker to clean up
+    sleep 5
     
     # Restart database with new password
     log_info "Starting fresh database with new credentials..."
