@@ -1,0 +1,46 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run Docker Compose Locally",
+            "type": "shell",
+            "command": "docker",
+            "args": [
+                "compose",
+                "-f",
+                "docker-compose.dev.yml",
+                "up",
+                "-d",
+                "--force-recreate"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "dedicated"
+            },
+            "problemMatcher": [],
+            "detail": "Start all services locally using Docker Compose (development)"
+        },
+        {
+            "label": "Run Linter with Fix",
+            "type": "shell",
+            "command": "ruff",
+            "args": [
+                "check",
+                "--fix",
+                "."
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Run Ruff linter with auto-fix for all Python files"
+        }
+    ]
+}
