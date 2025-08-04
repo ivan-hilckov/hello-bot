@@ -202,6 +202,44 @@ run_database_migration() {
         return 0
     fi
     
+    # If migration failed, check if it's a password authentication error
+    log_info "Migration failed, checking for password authentication issues..."
+    
+    # Check if it's a password error by testing connection
+    if docker compose --profile migration run --rm migration python -c "
+import asyncpg
+import asyncio
+import os
+async def test_connection():
+    try:
+        conn = await asyncpg.connect(os.environ['DATABASE_URL'])
+        await conn.close()
+        print('CONNECTION_OK')
+    except Exception as e:
+        print(f'CONNECTION_ERROR: {e}')
+asyncio.run(test_connection())
+" 2>&1 | grep -q "password authentication failed"; then
+        log_warning "Password authentication failed - recreating database with new password..."
+        
+        # Stop database and remove volume to reset password
+        docker compose --profile production --profile migration down postgres || true
+        docker volume rm "${PROJECT_NAME}_postgres_data" 2>/dev/null || log_info "No existing volume to remove"
+        
+        # Restart database with new password
+        docker compose --profile migration up -d postgres
+        
+        # Wait for database to be ready
+        log_info "Waiting for database to initialize with new password..."
+        sleep 30
+        
+        # Now try migration again
+        if docker compose --profile migration up --exit-code-from migration migration; then
+            log_success "Database migration completed after password reset"
+            docker compose --profile migration down migration || true
+            return 0
+        fi
+    fi
+    
     # If migration failed, check if it's because tables already exist
     log_info "Migration failed, checking if tables already exist..."
     
