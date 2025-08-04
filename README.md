@@ -8,17 +8,60 @@ Production-ready Telegram bot with PostgreSQL integration and automated CI/CD de
 
 - Message [@BotFather](https://t.me/botfather) → `/newbot` → copy token
 
-### 2. Configure & Run
+### 2. Configure Environment
 
 ```bash
+# Clone repository
+git clone <repository>
+cd hello-bot
+
+# Copy and configure environment
 cp .env.example .env
-# Edit .env: add your BOT_TOKEN
-docker compose up -d
 ```
 
-### 3. Test
+**Edit `.env` with required values:**
 
-Send `/start` to your bot → should respond with personalized greeting
+```env
+BOT_TOKEN=your_telegram_bot_token_from_botfather
+PROJECT_NAME=telegram-bot
+DB_PASSWORD=secure_local_password
+ENVIRONMENT=development
+DEBUG=true
+LOG_LEVEL=DEBUG
+```
+
+### 3. Start Development Environment
+
+```bash
+# Start all services (PostgreSQL + Redis + Bot)
+docker compose up -d
+
+# View logs to verify startup
+docker compose logs -f bot
+```
+
+### 4. Verify Setup
+
+- **Test Bot**: Send `/start` to your bot → should respond with personalized greeting
+- **Check Services**: `docker compose ps` → all services should be running
+- **View Database**: User record should be created automatically
+
+### 5. Development Commands
+
+```bash
+# Code formatting & linting
+uv run ruff format .
+uv run ruff check . --fix
+
+# Database migrations
+alembic upgrade head
+
+# Run tests
+uv run pytest
+
+# Restart after code changes
+docker compose restart bot
+```
 
 ## Features
 

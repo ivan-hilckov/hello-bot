@@ -126,9 +126,10 @@ class DatabaseMiddleware(BaseMiddleware):
 
 ### Response Style
 
-- **Concise & Technical**: Maximum 4 sentences per response
+- **Ultra-Concise Reports**: All responses must be 2-5 sentences maximum, 300 words total limit
+- **English Only**: Responses must be in English language
+- **No Emojis**: Strictly professional tone without emojis, celebrations, or elaborate formatting
 - **Business-focused**: Direct, actionable information only
-- **Professional tone**: No emojis, celebrations, or elaborate formatting
 - **Solution-oriented**: Focus on technical implementation
 
 ### Code Generation Principles

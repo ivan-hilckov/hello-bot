@@ -1,237 +1,87 @@
 """
-Main application entry point with production optimizations.
+Simple main application entry point.
 """
 
 import asyncio
 import logging
-import signal
-import sys
-from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
+from typing import Any
 
-# Performance optimization: use uvloop on production Linux systems
-try:
-    import uvloop
-
-    if sys.platform != "win32":
-        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-except ImportError:
-    # uvloop not available, use default event loop
-    pass
-
-import uvicorn
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
+from aiogram.types import Update
+from fastapi import FastAPI
 
-from app.cache import close_cache, initialize_cache
 from app.config import settings
-from app.database.session import create_tables, engine
-from app.handlers import common_router, start_router
-from app.logging import log_system_event, setup_structured_logging
-from app.middlewares import DatabaseMiddleware
-from app.webhook import create_webhook_app
-
-
-@asynccontextmanager
-async def lifespan() -> AsyncGenerator[None, None]:
-    """Application lifespan context manager."""
-    import structlog
-
-    logger = structlog.get_logger(__name__)
-
-    try:
-        # Startup
-        log_system_event(
-            logger,
-            "Starting Telegram Bot application",
-            component="main",
-            environment=settings.environment,
-            debug_mode=settings.debug,
-            version="1.1.0",
-        )
-
-        # Initialize cache service
-        try:
-            await initialize_cache()
-            log_system_event(
-                logger, "Cache service initialized", component="cache", status="success"
-            )
-        except Exception as e:
-            log_system_event(
-                logger,
-                "Failed to initialize cache",
-                component="cache",
-                status="error",
-                error=str(e),
-            )
-
-        # Create database tables
-        try:
-            await create_tables()
-            log_system_event(
-                logger, "Database tables created/verified", component="database", status="success"
-            )
-        except Exception as e:
-            log_system_event(
-                logger,
-                "Failed to create database tables",
-                component="database",
-                status="error",
-                error=str(e),
-            )
-            raise
-
-        yield
-
-    finally:
-        # Shutdown
-        log_system_event(
-            logger, "Shutting down Telegram Bot application", component="main", status="shutdown"
-        )
-
-        # Close cache service
-        try:
-            await close_cache()
-            log_system_event(logger, "Cache service closed", component="cache", status="success")
-        except Exception as e:
-            log_system_event(
-                logger, "Failed to close cache", component="cache", status="error", error=str(e)
-            )
-
-        # Close database engine
-        await engine.dispose()
-        log_system_event(
-            logger, "Database connections closed", component="database", status="shutdown"
-        )
-
-
-def create_bot() -> Bot:
-    """Create and configure bot instance."""
-    if not settings.bot_token:
-        raise ValueError("BOT_TOKEN is required but not provided")
-
-    # Create bot with default properties
-    bot = Bot(
-        token=settings.bot_token,
-        default=DefaultBotProperties(
-            parse_mode=ParseMode.MARKDOWN,
-        ),
-    )
-
-    return bot
-
-
-def create_dispatcher() -> Dispatcher:
-    """Create and configure dispatcher."""
-    dp = Dispatcher()
-
-    # Add middlewares
-    dp.message.middleware(DatabaseMiddleware())
-
-    # Include routers (modern approach)
-    dp.include_router(start_router)
-    dp.include_router(common_router)
-
-    return dp
+from app.database import create_tables, engine
+from app.handlers import router
+from app.middleware import DatabaseMiddleware
 
 
 async def main() -> None:
     """Main application function."""
-    # Setup structured logging
-    logger = setup_structured_logging()
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
 
-    async with lifespan():
-        # Create bot and dispatcher
-        bot = create_bot()
-        dp = create_dispatcher()
+    # Create database tables
+    await create_tables()
+    logger.info("Database initialized")
 
-        # Setup graceful shutdown
-        shutdown_event = asyncio.Event()
+    # Create bot and dispatcher
+    logger.info("Bot token: %s", settings.bot_token)
 
-        def signal_handler(signum, frame):
-            logger.info(f"Received signal {signum}, initiating shutdown...")
-            shutdown_event.set()
+    bot = Bot(
+        token=settings.bot_token,
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+    )
+    dp = Dispatcher()
 
-        # Register signal handlers for graceful shutdown
-        if sys.platform != "win32":
-            signal.signal(signal.SIGTERM, signal_handler)
-            signal.signal(signal.SIGINT, signal_handler)
+    # Add middleware and router
+    dp.message.middleware(DatabaseMiddleware())
+    dp.include_router(router)
 
-        try:
-            logger.info("Bot is starting...")
+    try:
+        if settings.webhook_url:
+            # Simple webhook mode
+            logger.info(f"Starting webhook mode: {settings.webhook_url}")
 
-            if settings.is_production and settings.webhook_url:
-                # Production webhook mode
-                logger.info(f"Starting in webhook mode: {settings.webhook_url}")
+            # Create simple FastAPI app
+            app = FastAPI()
 
-                # Set webhook
-                await bot.set_webhook(
-                    url=settings.webhook_url,
-                    secret_token=settings.webhook_secret_token,
-                )
-                logger.info("Webhook set successfully")
+            @app.post("/webhook")
+            async def webhook(update: dict[str, Any]):
+                telegram_update = Update(**update)
+                await dp.feed_update(bot, telegram_update)
+                return {"ok": True}
 
-                # Create FastAPI app for webhook handling
-                app = create_webhook_app(bot, dp)
+            # Set webhook
+            await bot.set_webhook(url=settings.webhook_url)
 
-                # Configure uvicorn
-                config = uvicorn.Config(
-                    app=app,
-                    host=settings.webhook_host,
-                    port=settings.webhook_port,
-                    log_level="info" if settings.debug else "warning",
-                    access_log=settings.debug,
-                )
+            # Run with uvicorn (this would be handled by Docker)
+            import uvicorn
 
-                # Start webhook server
-                server = uvicorn.Server(config)
-                logger.info(
-                    f"Starting webhook server on {settings.webhook_host}:{settings.webhook_port}"
-                )
+            uvicorn.run(app, host="0.0.0.0", port=8000)
 
-                # Run server until shutdown signal
-                server_task = asyncio.create_task(server.serve())
-                await shutdown_event.wait()
+        else:
+            # Polling mode (development)
+            logger.info("Starting polling mode")
+            await bot.delete_webhook(drop_pending_updates=True)
+            await dp.start_polling(bot)
 
-                # Shutdown server
-                server.should_exit = True
-                await server_task
-
-            else:
-                # Development polling mode
-                logger.info("Starting in polling mode")
-
-                # Delete webhook if set
-                await bot.delete_webhook(drop_pending_updates=True)
-
-                # Start polling
-                polling_task = asyncio.create_task(dp.start_polling(bot, handle_signals=False))
-
-                # Wait for shutdown signal
-                await shutdown_event.wait()
-
-                # Cancel polling
-                polling_task.cancel()
-                try:
-                    await polling_task
-                except asyncio.CancelledError:
-                    pass
-
-        except Exception as e:
-            logger.error(f"Bot failed to start: {e}", exc_info=True)
-            raise
-        finally:
-            # Cleanup
-            await bot.session.close()
-            logger.info("Bot session closed")
+    except Exception as e:
+        logger.error(f"Bot failed: {e}")
+        raise
+    finally:
+        await bot.session.close()
+        await engine.dispose()
+        logger.info("Bot stopped")
 
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        pass
+        logging.info("Bot stopped by user")
     except Exception as e:
-        logging.error(f"Application failed: {e}", exc_info=True)
-        sys.exit(1)
+        logging.error(f"Application failed: {e}")
+        exit(1)

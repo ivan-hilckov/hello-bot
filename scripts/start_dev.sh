@@ -9,7 +9,7 @@ echo "🚀 Starting Hello Bot development environment..."
 if [ ! -f .env ]; then
     echo "❌ .env file not found. Please copy .env.example to .env and configure it."
     echo "   cp .env.example .env"
-    echo "   # Then edit .env with your BOT_TOKEN and other settings"
+    echo "   # Then edit .env with your BOT_TOKEN"
     exit 1
 fi
 

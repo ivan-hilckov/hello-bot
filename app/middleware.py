@@ -1,5 +1,5 @@
 """
-Database middleware for aiogram bot.
+Simple database middleware.
 """
 
 from collections.abc import Awaitable, Callable
@@ -8,7 +8,7 @@ from typing import Any
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject
 
-from app.database.session import AsyncSessionLocal
+from app.database import AsyncSessionLocal
 
 
 class DatabaseMiddleware(BaseMiddleware):
@@ -23,20 +23,10 @@ class DatabaseMiddleware(BaseMiddleware):
         """Inject database session into handler data."""
         async with AsyncSessionLocal() as session:
             try:
-                # Add session to handler data
                 data["session"] = session
-
-                # Call the handler
                 result = await handler(event, data)
-
-                # Commit the transaction
                 await session.commit()
                 return result
-
             except Exception:
-                # Rollback on error
                 await session.rollback()
                 raise
-            finally:
-                # Session will be closed automatically by context manager
-                pass

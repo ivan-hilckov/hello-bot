@@ -46,7 +46,7 @@ cd /path/to/deployment && ./scripts/deploy_production.sh
 
 ## 🔧 start_dev.sh & stop_dev.sh ✨ UPDATED
 
-**Обновленные скрипты для development** - теперь используют отдельный `docker-compose.dev.yml`.
+**Простые скрипты для development** - используют упрощенный `docker-compose.dev.yml`.
 
 ### Использование
 
@@ -60,9 +60,9 @@ cd /path/to/deployment && ./scripts/deploy_production.sh
 
 ### Особенности
 
-- Отдельная конфигурация для development
+- Простая конфигурация для development
 - Hot reloading для изменений кода
-- Включает Adminer для управления БД
+- Только PostgreSQL + бот + Adminer
 
 ## 🧪 test_local.sh
 

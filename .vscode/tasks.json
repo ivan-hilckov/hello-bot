@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Run Docker Compose Locally",
+            "label": "🚀 Start Dev Environment (Clean)",
             "type": "shell",
             "command": "docker",
             "args": [
@@ -11,7 +11,9 @@
                 "docker-compose.dev.yml",
                 "up",
                 "-d",
-                "--force-recreate"
+                "--build",
+                "--force-recreate",
+                "--remove-orphans"
             ],
             "group": "build",
             "presentation": {
@@ -21,16 +23,17 @@
                 "panel": "dedicated"
             },
             "problemMatcher": [],
-            "detail": "Start all services locally using Docker Compose (development)"
+            "detail": "Clean start: rebuild images, recreate containers, remove orphans"
         },
         {
-            "label": "Run Linter with Fix",
+            "label": "🛑 Stop Dev Environment",
             "type": "shell",
-            "command": "ruff",
+            "command": "docker",
             "args": [
-                "check",
-                "--fix",
-                "."
+                "compose",
+                "-f",
+                "docker-compose.dev.yml",
+                "down"
             ],
             "group": "build",
             "presentation": {
@@ -40,7 +43,133 @@
                 "panel": "shared"
             },
             "problemMatcher": [],
-            "detail": "Run Ruff linter with auto-fix for all Python files"
+            "detail": "Stop all development containers"
+        },
+        {
+            "label": "🧹 Clean Restart Dev Environment",
+            "type": "shell",
+            "command": "docker",
+            "args": [
+                "compose",
+                "-f",
+                "docker-compose.dev.yml",
+                "down",
+                "&&",
+                "docker",
+                "compose",
+                "-f",
+                "docker-compose.dev.yml",
+                "up",
+                "-d",
+                "--build",
+                "--force-recreate"
+            ],
+            "options": {
+                "shell": {
+                    "executable": "/bin/bash",
+                    "args": ["-c"]
+                }
+            },
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "dedicated"
+            },
+            "problemMatcher": [],
+            "detail": "Full clean restart: stop → rebuild → start (most reliable)"
+        },
+        {
+            "label": "📋 View Bot Logs",
+            "type": "shell",
+            "command": "docker",
+            "args": [
+                "logs",
+                "hello_bot_dev",
+                "--tail=50",
+                "-f"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "dedicated"
+            },
+            "problemMatcher": [],
+            "detail": "Follow bot container logs (last 50 lines + live)"
+        },
+        {
+            "label": "🔧 Format & Lint Code",
+            "type": "shell",
+            "command": "uv",
+            "args": [
+                "run",
+                "ruff",
+                "format",
+                ".",
+                "&&",
+                "uv",
+                "run",
+                "ruff",
+                "check",
+                "--fix",
+                "."
+            ],
+            "options": {
+                "shell": {
+                    "executable": "/bin/bash",
+                    "args": ["-c"]
+                }
+            },
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Format code with Ruff + run linter with auto-fix"
+        },
+        {
+            "label": "🧪 Test Production Build",
+            "type": "shell",
+            "command": "docker",
+            "args": [
+                "compose",
+                "build"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Test production Docker build without starting"
+        },
+        {
+            "label": "📊 Container Status",
+            "type": "shell",
+            "command": "docker",
+            "args": [
+                "compose",
+                "-f",
+                "docker-compose.dev.yml",
+                "ps"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Show status of all development containers"
         }
     ]
 }
