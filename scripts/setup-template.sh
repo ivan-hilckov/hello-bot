@@ -27,7 +27,7 @@ prompt_with_default() {
     local prompt="$1"
     local default="$2"
     local result
-    
+
     echo -ne "${YELLOW}$prompt${NC} (default: ${BLUE}$default${NC}): "
     read result
     echo "${result:-$default}"
@@ -100,10 +100,10 @@ replace_in_file() {
     local file="$1"
     if [[ -f "$file" ]]; then
         echo "  Updating $file"
-        
+
         # Use temporary file for safe replacement
         local temp_file=$(mktemp)
-        
+
         sed -e "s/hello-bot/$PROJECT_NAME/g" \
             -e "s/hello_bot/$PROJECT_SNAKE/g" \
             -e "s/Hello Bot/$BOT_NAME/g" \

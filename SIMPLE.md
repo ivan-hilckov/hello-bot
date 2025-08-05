@@ -99,7 +99,7 @@ The current codebase is **significantly over-engineered** for a simple "Hello Bo
 - **Justification**: Service layer abstraction unnecessary for CRUD
 
 #### 1.6 Remove Complex Webhook Server
-- **Delete**: `webhook.py` (232 lines)  
+- **Delete**: `webhook.py` (232 lines)
 - **Replace with**: Simple FastAPI app if needed
 - **Justification**: Rate limiting, metrics, complex health checks not needed
 
@@ -119,7 +119,7 @@ async def main():
     dp = Dispatcher()
     dp.message.middleware(DatabaseMiddleware())
     dp.include_router(router)
-    
+
     if settings.webhook_url:
         # Simple webhook
         app = FastAPI()
@@ -184,7 +184,7 @@ async def start_handler(message: types.Message, session: AsyncSession):
         user = User(telegram_id=message.from_user.id, username=message.from_user.username)
         session.add(user)
         await session.commit()
-    
+
     await message.answer(f"Hello, {user.username or user.first_name}!")
 
 @router.message()
@@ -217,7 +217,7 @@ async def default_handler(message: types.Message):
 
 ### Before: Enterprise Bot (Over-Engineered)
 - ✅ Prometheus metrics for every operation
-- ✅ Redis caching with fallback strategies  
+- ✅ Redis caching with fallback strategies
 - ✅ Dependency injection container
 - ✅ Service layer with business logic abstraction
 - ✅ Structured JSON logging with multiple log levels
@@ -345,7 +345,7 @@ git checkout -b simplify-bot
 ### Step 2: Remove Enterprise Files
 ```bash
 rm app/metrics.py
-rm app/container.py  
+rm app/container.py
 rm app/cache.py
 rm app/logging.py
 rm app/webhook.py
@@ -415,7 +415,7 @@ Keep these essential components:
 - [ ] Number of files reduced from 15+ to 7 (53% reduction)
 - [ ] Dependencies reduced from 20+ to 8 (60% reduction)
 
-### Functional Metrics  
+### Functional Metrics
 - [ ] Bot still responds to /start with personalized greeting
 - [ ] User data still stored in PostgreSQL
 - [ ] Database migrations still work
@@ -436,7 +436,7 @@ Keep these essential components:
 - **Use Case**: Large-scale production bot with monitoring
 - **Maintenance Effort**: High (many moving parts)
 
-### After Simplification  
+### After Simplification
 - **Complexity**: Simple, readable architecture
 - **Code**: ~240 lines across 7 files
 - **Learning Curve**: 30 minutes to understand completely

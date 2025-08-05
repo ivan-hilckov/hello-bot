@@ -21,9 +21,9 @@ print_test() {
     local status=$1
     local message=$2
     local details=$3
-    
+
     TOTAL_TESTS=$((TOTAL_TESTS + 1))
-    
+
     if [ "$status" = "PASS" ]; then
         echo -e "${GREEN}✅ PASS${NC}: $message"
         PASSED_TESTS=$((PASSED_TESTS + 1))
@@ -45,7 +45,7 @@ print_test() {
 check_command() {
     local cmd=$1
     local name=$2
-    
+
     if command -v "$cmd" >/dev/null 2>&1; then
         local version=$(eval "$cmd --version 2>/dev/null | head -n1" || echo "unknown")
         print_test "PASS" "$name is installed" "$version"
@@ -59,14 +59,14 @@ check_command() {
 # Function to check system resources
 check_resources() {
     echo -e "\n${BLUE}=== SYSTEM RESOURCES ===${NC}"
-    
+
     # CPU cores
     if command -v nproc >/dev/null 2>&1; then
         local cpu_cores=$(nproc 2>/dev/null || echo "0")
     else
         local cpu_cores=$(sysctl -n hw.ncpu 2>/dev/null || echo "0")
     fi
-    
+
     if [ "$cpu_cores" -ge 2 ]; then
         print_test "PASS" "CPU cores: $cpu_cores" "Good for production"
     elif [ "$cpu_cores" -ge 1 ]; then
@@ -74,7 +74,7 @@ check_resources() {
     else
         print_test "WARN" "CPU cores: unknown" "Cannot detect CPU count"
     fi
-    
+
     # RAM
     if command -v free >/dev/null 2>&1; then
         local ram_gb=$(free -g 2>/dev/null | awk '/^Mem:/{print $2}' || echo "0")
@@ -83,7 +83,7 @@ check_resources() {
         local ram_bytes=$(sysctl -n hw.memsize 2>/dev/null || echo "0")
         local ram_gb=$((ram_bytes / 1024 / 1024 / 1024))
     fi
-    
+
     if [ "$ram_gb" -ge 2 ]; then
         print_test "PASS" "RAM: ${ram_gb}GB" "Sufficient for bot + database"
     elif [ "$ram_gb" -ge 1 ]; then
@@ -93,7 +93,7 @@ check_resources() {
     else
         print_test "WARN" "RAM: unknown" "Cannot detect RAM amount"
     fi
-    
+
     # Disk space
     local disk_gb=""
     if df -BG / >/dev/null 2>&1; then
@@ -103,7 +103,7 @@ check_resources() {
         local disk_info=$(df -h / 2>/dev/null | awk 'NR==2 {print $4}' || echo "0G")
         disk_gb=$(echo "$disk_info" | sed 's/G.*//g' | sed 's/\..*//')
     fi
-    
+
     if [ -n "$disk_gb" ] && [ "$disk_gb" -ge 10 ]; then
         print_test "PASS" "Free disk space: ${disk_gb}GB" "Sufficient for images and logs"
     elif [ -n "$disk_gb" ] && [ "$disk_gb" -ge 5 ]; then
@@ -113,7 +113,7 @@ check_resources() {
     else
         print_test "WARN" "Free disk space: unknown" "Cannot detect disk usage"
     fi
-    
+
     # Swap
     if command -v free >/dev/null 2>&1; then
         local swap_gb=$(free -g 2>/dev/null | awk '/^Swap:/{print $2}' || echo "0")
@@ -130,28 +130,28 @@ check_resources() {
 # Function to check network connectivity
 check_network() {
     echo -e "\n${BLUE}=== NETWORK CONNECTIVITY ===${NC}"
-    
+
     # Internet connectivity
     if ping -c 1 google.com >/dev/null 2>&1; then
         print_test "PASS" "Internet connectivity" "Can reach external services"
     else
         print_test "FAIL" "Internet connectivity" "Cannot reach external services"
     fi
-    
+
     # GitHub connectivity
     if curl -s --max-time 5 https://github.com >/dev/null; then
         print_test "PASS" "GitHub connectivity" "Can reach GitHub.com"
     else
         print_test "FAIL" "GitHub connectivity" "Cannot reach GitHub.com"
     fi
-    
+
     # Docker Hub connectivity
     if curl -s --max-time 5 https://hub.docker.com >/dev/null; then
         print_test "PASS" "Docker Hub connectivity" "Can reach Docker Hub"
     else
         print_test "WARN" "Docker Hub connectivity" "Cannot reach Docker Hub"
     fi
-    
+
     # GitHub Container Registry
     if curl -s --max-time 5 https://ghcr.io >/dev/null; then
         print_test "PASS" "GitHub Container Registry" "Can reach ghcr.io"
@@ -163,7 +163,7 @@ check_network() {
 # Function to check Docker setup
 check_docker() {
     echo -e "\n${BLUE}=== DOCKER SETUP ===${NC}"
-    
+
     # Docker daemon
     if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet docker 2>/dev/null; then
         print_test "PASS" "Docker daemon is running" "Service is active"
@@ -174,14 +174,14 @@ check_docker() {
     else
         print_test "FAIL" "Docker daemon is not running" "Run: sudo systemctl start docker (Linux) or start Docker Desktop"
     fi
-    
+
     # Docker without sudo
     if docker ps >/dev/null 2>&1; then
         print_test "PASS" "Docker runs without sudo" "User has proper permissions"
     else
         print_test "FAIL" "Docker requires sudo" "Add user to docker group: sudo usermod -aG docker $USER"
     fi
-    
+
     # Docker Compose
     if docker compose version >/dev/null 2>&1; then
         local compose_version=$(docker compose version --short 2>/dev/null || echo "unknown")
@@ -191,7 +191,7 @@ check_docker() {
     else
         print_test "FAIL" "Docker Compose not found" "Install Docker Compose"
     fi
-    
+
     # Test Docker functionality
     if docker run --rm hello-world >/dev/null 2>&1; then
         print_test "PASS" "Docker can run containers" "Successfully ran test container"
@@ -203,7 +203,7 @@ check_docker() {
 # Function to check directories and permissions
 check_directories() {
     echo -e "\n${BLUE}=== DIRECTORIES & PERMISSIONS ===${NC}"
-    
+
     # Deployment directory
     local deploy_dir="/opt/hello-bot"
     if [ -d "$deploy_dir" ]; then
@@ -215,14 +215,14 @@ check_directories() {
     else
         print_test "WARN" "Deployment directory doesn't exist" "Will be created during deployment"
     fi
-    
+
     # Home directory permissions
     if [ -w "$HOME" ]; then
         print_test "PASS" "Home directory writable" "$HOME"
     else
         print_test "FAIL" "Home directory not writable" "Check permissions"
     fi
-    
+
     # Check if user can sudo (for deployment script)
     if sudo -n true >/dev/null 2>&1; then
         print_test "PASS" "Sudo access without password" "Good for automated deployment"
@@ -236,7 +236,7 @@ check_directories() {
 # Function to check security
 check_security() {
     echo -e "\n${BLUE}=== SECURITY SETUP ===${NC}"
-    
+
     # SSH service
     if command -v systemctl >/dev/null 2>&1; then
         if systemctl is-active --quiet ssh 2>/dev/null || systemctl is-active --quiet sshd 2>/dev/null; then
@@ -249,7 +249,7 @@ check_security() {
     else
         print_test "WARN" "SSH service status unknown" "Cannot detect SSH service on this system"
     fi
-    
+
     # Firewall
     if command -v ufw >/dev/null 2>&1 && ufw status >/dev/null 2>&1; then
         local ufw_status=$(ufw status 2>/dev/null | head -n1)
@@ -263,7 +263,7 @@ check_security() {
     else
         print_test "WARN" "No firewall detected" "Consider enabling UFW or firewalld (Linux)"
     fi
-    
+
     # Fail2ban
     if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet fail2ban 2>/dev/null; then
         print_test "PASS" "Fail2ban is active" "Brute force protection enabled"
@@ -275,7 +275,7 @@ check_security() {
 # Function to test GitHub Container Registry login
 test_ghcr_login() {
     echo -e "\n${BLUE}=== GITHUB CONTAINER REGISTRY TEST ===${NC}"
-    
+
     # Check if we can login (this will fail without token, but tests connectivity)
     if echo "test" | docker login ghcr.io -u test --password-stdin >/dev/null 2>&1; then
         print_test "WARN" "GHCR login test passed" "Unexpected success"
@@ -288,7 +288,7 @@ test_ghcr_login() {
 # Function to check environment
 check_environment() {
     echo -e "\n${BLUE}=== ENVIRONMENT ===${NC}"
-    
+
     # Detect OS type first
     local os_type=$(uname -s)
     if [ "$os_type" != "Linux" ]; then
@@ -297,7 +297,7 @@ check_environment() {
         echo -e "   ${YELLOW}→${NC} Results on non-Linux systems may not be accurate"
         echo ""
     fi
-    
+
     # OS version
     if [ -f /etc/os-release ]; then
         local os_info=$(grep PRETTY_NAME /etc/os-release | cut -d '"' -f 2)
@@ -308,7 +308,7 @@ check_environment() {
     else
         print_test "WARN" "Operating System: $os_type" "Cannot detect OS version"
     fi
-    
+
     # Architecture
     local arch=$(uname -m)
     if [ "$arch" = "x86_64" ]; then
@@ -318,7 +318,7 @@ check_environment() {
     else
         print_test "WARN" "Architecture: $arch" "May need different Docker images"
     fi
-    
+
     # Timezone
     if command -v timedatectl >/dev/null 2>&1; then
         local tz=$(timedatectl show --property=Timezone --value 2>/dev/null || echo "unknown")
@@ -336,7 +336,7 @@ main() {
     echo ""
     echo "Testing VPS configuration for Hello Bot deployment..."
     echo ""
-    
+
     # Run all checks
     check_environment
     check_resources
@@ -345,14 +345,14 @@ main() {
     check_directories
     check_security
     test_ghcr_login
-    
+
     # Summary
     echo -e "\n${BLUE}=== TEST SUMMARY ===${NC}"
     echo -e "Total tests: $TOTAL_TESTS"
     echo -e "${GREEN}Passed: $PASSED_TESTS${NC}"
     echo -e "${YELLOW}Warnings: $WARNINGS${NC}"
     echo -e "${RED}Failed: $((TOTAL_TESTS - PASSED_TESTS))${NC}"
-    
+
     echo ""
     if [ $PASSED_TESTS -eq $TOTAL_TESTS ]; then
         echo -e "${GREEN}🎉 VPS IS READY FOR DEPLOYMENT!${NC}"
@@ -365,7 +365,7 @@ main() {
         echo "Please fix the failed tests before attempting deployment."
         exit 1
     fi
-    
+
     echo ""
     echo -e "${BLUE}Next steps:${NC}"
     echo "1. Configure GitHub Secrets (see GITHUB_SECRETS.md)"

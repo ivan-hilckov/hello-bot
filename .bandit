@@ -1,0 +1,6 @@
+exclude_dirs:
+  - tests
+  - alembic
+skips:
+  - B101  # Use of assert detected
+  - B601  # paramiko calls with shell=True
