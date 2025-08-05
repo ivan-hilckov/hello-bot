@@ -137,10 +137,11 @@ WEBHOOK_URL=https://domain.com/webhook  # Optional for production
 ## Development Commands
 
 ```bash
-# Local development
-docker compose up -d              # Start all services
-docker compose logs -f            # View logs
-docker compose down               # Stop services
+# Local development (simplified)
+docker compose -f docker-compose.dev.yml up     # Start development
+docker compose -f docker-compose.dev.yml down   # Stop development
+# OR use simplified script:
+./scripts/start_dev_simple.sh    # Start with hot reload
 
 # Code quality
 uv run ruff format .              # Format code

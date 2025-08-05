@@ -135,6 +135,7 @@ jobs:
           cp docker-compose.yml deploy/
           cp -r scripts deploy/
           cp .env.example deploy/
+          chmod +x deploy/scripts/*.sh
 
           echo "✅ Deployment files prepared"
 
@@ -166,9 +167,9 @@ jobs:
           port: ${{ secrets.VPS_PORT || 22 }}
           envs: BOT_TOKEN,DB_PASSWORD,ENVIRONMENT,BOT_IMAGE,PROJECT_NAME,WEBHOOK_URL,WEBHOOK_SECRET_TOKEN
           script: |
-            # Run centralized production deployment script
+            # Run simplified production deployment script
             cd /tmp/${{ github.event.repository.name }}-deploy
-            ./scripts/deploy_production.sh
+            ./scripts/deploy_simple.sh
 
       - name: Verify deployment
         uses: appleboy/ssh-action@v1.1.0
