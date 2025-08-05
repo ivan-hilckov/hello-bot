@@ -46,41 +46,6 @@
             "detail": "Stop all development containers"
         },
         {
-            "label": "🧹 Clean Restart Dev Environment",
-            "type": "shell",
-            "command": "docker",
-            "args": [
-                "compose",
-                "-f",
-                "docker-compose.dev.yml",
-                "down",
-                "&&",
-                "docker",
-                "compose",
-                "-f",
-                "docker-compose.dev.yml",
-                "up",
-                "-d",
-                "--build",
-                "--force-recreate"
-            ],
-            "options": {
-                "shell": {
-                    "executable": "/bin/bash",
-                    "args": ["-c"]
-                }
-            },
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": true,
-                "panel": "dedicated"
-            },
-            "problemMatcher": [],
-            "detail": "Full clean restart: stop → rebuild → start (most reliable)"
-        },
-        {
             "label": "📋 View Bot Logs",
             "type": "shell",
             "command": "docker",
@@ -133,43 +98,5 @@
             "problemMatcher": [],
             "detail": "Format code with Ruff + run linter with auto-fix"
         },
-        {
-            "label": "🧪 Test Production Build",
-            "type": "shell",
-            "command": "docker",
-            "args": [
-                "compose",
-                "build"
-            ],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
-            "problemMatcher": [],
-            "detail": "Test production Docker build without starting"
-        },
-        {
-            "label": "📊 Container Status",
-            "type": "shell",
-            "command": "docker",
-            "args": [
-                "compose",
-                "-f",
-                "docker-compose.dev.yml",
-                "ps"
-            ],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
-            "problemMatcher": [],
-            "detail": "Show status of all development containers"
-        }
     ]
 }

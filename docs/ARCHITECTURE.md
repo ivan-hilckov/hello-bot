@@ -247,24 +247,28 @@ class DatabaseMiddleware(BaseMiddleware):
 | `logging.py` | 156 | Structured logging | Standard logging sufficient |
 | `services/` | 235 | Service layer | Direct operations simpler |
 | `webhook.py` | 232 | Complex FastAPI server | Simple endpoint enough |
+| `scripts/deploy_production.sh` | 480 | Complex deployment | Simplified to 50 lines |
+| `scripts/test_vps.sh` | 379 | Comprehensive VPS testing | Essential checks only |
+| `scripts/dev_run.py` | 127 | Custom hot reload | Docker volumes sufficient |
 
-**Total Removed: ~1,201 lines (78% reduction)**
+**Total Removed: ~2,187 lines (85% reduction)**
 
 ### Impact of Simplification
 
 **Before (Enterprise):**
-- 15+ files, 1,400+ lines
+- 15+ files, 2,500+ lines total
 - Service Layer + DI Container
 - Redis caching + Prometheus metrics
 - Structured JSON logging
-- Complex webhook server
+- Complex deployment scripts
 - Multiple abstraction layers
 
 **After (Simplified):**
-- 5 files, ~320 lines
+- 5 files, ~320 lines (app)
+- 6 scripts, ~200 lines (deployment)
 - Direct database operations
 - Standard Python logging
-- Simple webhook endpoint
+- Simple deployment workflow
 - Minimal abstractions
 
 ## Data Flow

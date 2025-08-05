@@ -35,7 +35,6 @@ env.bak/
 venv.bak/
 
 # Development directories
-.vscode/
 .idea/
 .pytest_cache/
 .coverage

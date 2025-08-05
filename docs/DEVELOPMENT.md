@@ -39,17 +39,19 @@ ENVIRONMENT=development
 DEBUG=true
 ```
 
-### 3. Run with Docker (Recommended)
+### 3. Run with Docker (Simplified)
 
 ```bash
-# Start all services
-docker compose up -d
+# Start development with hot reload
+./scripts/start_dev_simple.sh
 
-# View logs
-docker compose logs -f
+# OR direct command
+docker compose -f docker-compose.dev.yml up
 
 # Stop services
-docker compose down
+docker compose -f docker-compose.dev.yml down
+# OR
+./scripts/stop_dev.sh
 ```
 
 **Services Started**:
@@ -72,10 +74,10 @@ docker compose down
 
    ```bash
    # Verify containers are running
-   docker compose ps
+   docker compose -f docker-compose.dev.yml ps
 
    # Check application logs
-   docker compose logs bot --tail=20
+   docker compose -f docker-compose.dev.yml logs bot-dev --tail=20
    ```
 
 3. **Verify Database**:
@@ -148,8 +150,8 @@ uv run ruff format .
 # Lint code
 uv run ruff check . --fix
 
-# Restart services to apply changes
-docker compose restart bot
+# Restart services to apply changes (hot reload enabled automatically)
+docker compose -f docker-compose.dev.yml restart bot-dev
 ```
 
 ### Database Management
@@ -165,15 +167,15 @@ alembic upgrade head
 alembic current
 
 # Reset database (DESTRUCTIVE)
-docker compose down -v
-docker compose up -d
+docker compose -f docker-compose.dev.yml down -v
+docker compose -f docker-compose.dev.yml up -d
 ```
 
 ### Useful Commands
 
 ```bash
 # Rebuild containers after code changes
-docker compose build --no-cache
+docker compose -f docker-compose.dev.yml build --no-cache
 
 # View container resources
 docker stats
@@ -182,11 +184,11 @@ docker stats
 docker system prune -f
 
 # View all services status
-docker compose ps
+docker compose -f docker-compose.dev.yml ps
 
 # Follow logs for specific service
-docker compose logs -f bot
-docker compose logs -f postgres
+docker compose -f docker-compose.dev.yml logs -f bot-dev
+docker compose -f docker-compose.dev.yml logs -f postgres
 ```
 
 ## Development vs Production

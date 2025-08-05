@@ -28,10 +28,17 @@ sudo usermod -aG docker $USER
 sudo apt install docker-compose-plugin
 
 # Create deployment directory
-sudo mkdir -p /opt/hello-bot
-sudo chown $USER:$USER /opt/hello-bot
+mkdir -p $HOME/hello-bot
 
 # Logout and login again for Docker group to take effect
+```
+
+**Test VPS readiness**:
+```bash
+# Download and run simplified VPS check
+curl -fsSL https://raw.githubusercontent.com/your-repo/hello-bot/main/scripts/check_vps_simple.sh -o check_vps.sh
+chmod +x check_vps.sh
+./check_vps.sh
 ```
 
 ### 2. GitHub Secrets
@@ -92,11 +99,11 @@ git push origin main
 ssh user@your-vps-ip
 
 # Check services
-cd /opt/hello-bot
-docker compose ps
+cd $HOME/hello-bot
+docker compose --profile production ps
 
 # Check logs
-docker compose logs -f bot
+docker compose --profile production logs -f bot
 
 # Test bot
 # Send /start to your bot → should respond with greeting
@@ -303,7 +310,7 @@ docker compose up -d
 
 # Manual deploy
 ssh user@vps
-cd /opt/hello-bot
+cd $HOME/hello-bot
 git pull origin main
 docker compose build --no-cache
 docker compose up -d
@@ -379,8 +386,8 @@ docker compose exec -i postgres psql -U hello_user hello_bot < backup_20240103.s
 ```bash
 # Backup docker-compose and data
 tar -czf hello-bot-backup_$(date +%Y%m%d).tar.gz \
-  /opt/hello-bot/docker-compose.yml \
-  /opt/hello-bot/.env
+  $HOME/hello-bot/docker-compose.yml \
+  $HOME/hello-bot/.env
 
 # Backup database data
 docker run --rm -v hello-bot_postgres_data:/data -v $(pwd):/backup \
@@ -409,7 +416,7 @@ sudo systemctl enable docker
 
 ```bash
 # Secure .env file
-chmod 600 /opt/hello-bot/.env
+chmod 600 $HOME/hello-bot/.env
 
 # Check for sensitive data in logs
 docker compose logs bot | grep -i "token\|password\|secret"

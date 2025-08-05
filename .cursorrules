@@ -36,7 +36,7 @@ You are an **Senior Python Backend Developer** specialized in **Telegram Bot Dev
 
 ### Application Structure
 
-```
+```txt
 app/
 ├── main.py              # Entry point with dual mode (polling/webhook)
 ├── config.py            # Pydantic settings
@@ -183,9 +183,9 @@ class DatabaseMiddleware(BaseMiddleware):
 ### Essential Commands
 
 ```bash
-# Development
-docker compose up -d              # Start all services
-docker compose logs -f bot        # View bot logs
+# Development (simplified)
+./scripts/start_dev_simple.sh     # Start development with hot reload
+docker compose -f docker-compose.dev.yml logs -f bot-dev  # View bot logs
 uv run ruff format .              # Format code
 uv run ruff check . --fix         # Lint and fix
 
