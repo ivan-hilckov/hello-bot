@@ -57,10 +57,12 @@ async def main() -> None:
             # Set webhook
             await bot.set_webhook(url=settings.webhook_url)
 
-            # Run with uvicorn (this would be handled by Docker)
+            # Run with uvicorn server properly
             import uvicorn
-
-            uvicorn.run(app, host="0.0.0.0", port=8000)
+            
+            config = uvicorn.Config(app, host="0.0.0.0", port=8000, log_level="info")
+            server = uvicorn.Server(config)
+            await server.serve()
 
         else:
             # Polling mode (development)
