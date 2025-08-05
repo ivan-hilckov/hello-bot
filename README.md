@@ -1,6 +1,6 @@
 # Hello Bot
 
-Production-ready Telegram bot with PostgreSQL integration and automated CI/CD deployment.
+Simple Telegram bot with PostgreSQL integration and automated deployment.
 
 ## Quick Start
 
@@ -23,17 +23,15 @@ cp .env.example .env
 
 ```env
 BOT_TOKEN=your_telegram_bot_token_from_botfather
-PROJECT_NAME=telegram-bot
 DB_PASSWORD=secure_local_password
 ENVIRONMENT=development
 DEBUG=true
-LOG_LEVEL=DEBUG
 ```
 
 ### 3. Start Development Environment
 
 ```bash
-# Start all services (PostgreSQL + Redis + Bot)
+# Start all services (PostgreSQL + Bot)
 docker compose up -d
 
 # View logs to verify startup
@@ -56,9 +54,6 @@ uv run ruff check . --fix
 # Database migrations
 alembic upgrade head
 
-# Run tests
-uv run pytest
-
 # Restart after code changes
 docker compose restart bot
 ```
@@ -66,35 +61,35 @@ docker compose restart bot
 ## Features
 
 - **Simple & Fast**: Responds to `/start` command with user database integration
-- **Production Ready**: Docker containerization + PostgreSQL + health checks
+- **Clean Architecture**: Straightforward code structure (~320 lines total)
+- **Production Ready**: Docker containerization + PostgreSQL + automated deployment
 - **Auto Deploy**: Push to `main` → automatically deploys to VPS via GitHub Actions
-- **Optimized**: Configured for 2GB RAM VPS with performance tuning
 
 ## Architecture
 
 ```
 Development Mode          Production Mode
 ┌─────────────────┐      ┌─────────────────────┐
-│ Bot polls       │      │ Telegram → Webhook  │
-│ Telegram API    │      │ → FastAPI server    │
+│ Bot polls       │      │ Telegram → Simple   │
+│ Telegram API    │      │ Webhook Endpoint    │
 └─────────────────┘      └─────────────────────┘
         │                          │
         └──────────┬─────────────────┘
                    │
             ┌─────────────┐
             │ aiogram     │
-            │ Dispatcher  │
+            │ Router      │
             └─────────────┘
                    │
             ┌─────────────┐
-            │ Database    │
-            │ Middleware  │
+            │ Simple      │
+            │ Handlers    │
             └─────────────┘
                    │
             ┌─────────────┐
             │ PostgreSQL  │
-            │ + User      │
-            │ Management  │
+            │ Direct      │
+            │ Operations  │
             └─────────────┘
 ```
 
@@ -103,7 +98,6 @@ Development Mode          Production Mode
 - **Python 3.12+** with type hints
 - **aiogram 3.0+** for Telegram Bot API
 - **SQLAlchemy 2.0** async + PostgreSQL
-- **FastAPI** for webhook server (production)
 - **Docker Compose** for containerization
 - **GitHub Actions** for CI/CD
 - **Alembic** for database migrations
@@ -125,10 +119,10 @@ Development Mode          Production Mode
 
 ## Performance
 
-- **Memory Usage**: 800MB-1.2GB (optimized for 2GB VPS)
-- **Startup Time**: <30 seconds
-- **Response Time**: <500ms
-- **Deployment Time**: ~2-3 minutes (optimized from 8-10 minutes)
+- **Memory Usage**: 200-400MB (optimized for minimal resource usage)
+- **Startup Time**: <15 seconds
+- **Response Time**: <300ms
+- **Deployment Time**: ~2-3 minutes
 
 ## Environment Variables
 
@@ -137,7 +131,7 @@ BOT_TOKEN=your_telegram_bot_token    # Required
 DB_PASSWORD=secure_password_123      # Required for production
 ENVIRONMENT=development              # development/production
 DEBUG=true                          # true/false
-LOG_LEVEL=INFO                      # DEBUG/INFO/WARNING/ERROR
+WEBHOOK_URL=https://domain.com/webhook  # Optional for production
 ```
 
 ## Development Commands

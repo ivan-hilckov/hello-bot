@@ -34,14 +34,10 @@ nano .env  # or code .env
 
 ```env
 BOT_TOKEN=your_real_token_from_botfather
-PROJECT_NAME=telegram-bot
 DB_PASSWORD=local_password_123
 ENVIRONMENT=development
 DEBUG=true
-LOG_LEVEL=DEBUG
 ```
-
-> **💡 Note**: Set `PROJECT_NAME` to your bot's name (use in template or keep default `telegram-bot`).
 
 ### 3. Run with Docker (Recommended)
 
@@ -58,13 +54,11 @@ docker compose down
 
 **Services Started**:
 
-- **PostgreSQL**: Database server with optimized indexes
-- **Redis**: Cache server with memory fallback
-- **Bot**: Modern Telegram bot with enterprise features
-  - Router pattern + Service Layer architecture
-  - Dependency injection system
-  - Prometheus metrics collection
-  - Enhanced health checks with monitoring
+- **PostgreSQL**: Database server
+- **Bot**: Simple Telegram bot with clean architecture
+  - Direct database operations
+  - Standard Python logging
+  - Simple handler structure
 
 ### 4. Verify Setup
 
@@ -72,55 +66,33 @@ docker compose down
 
    - Find your bot in Telegram (search by username)
    - Send `/start` → should respond with personalized greeting
-   - User should be cached for subsequent requests
+   - User should be stored in database
 
-2. **Check All Services**:
+2. **Check Services**:
 
    ```bash
-   # Verify all containers are running
+   # Verify containers are running
    docker compose ps
 
    # Check application logs
    docker compose logs bot --tail=20
    ```
 
-3. **Test Enhanced Health Checks**:
+3. **Verify Database**:
 
    ```bash
-   # Test health endpoint (if webhook mode)
-   curl http://localhost:8000/health
-
-   # Check Prometheus metrics (if enabled)
-   curl http://localhost:8000/metrics
-   ```
-
-4. **Verify Database with Optimizations**:
-
-   ```bash
-   # Check user creation and indexes
+   # Check user creation
    docker compose exec postgres psql -U hello_user -d hello_bot -c "
-   SELECT
-     COUNT(*) as total_users,
-     COUNT(*) FILTER (WHERE username IS NOT NULL) as users_with_username
-   FROM users;
+   SELECT telegram_id, username, first_name, created_at
+   FROM users
+   ORDER BY created_at DESC
+   LIMIT 5;
    "
 
-   # Verify indexes exist
+   # Count total users
    docker compose exec postgres psql -U hello_user -d hello_bot -c "
-   SELECT indexname, indexdef
-   FROM pg_indexes
-   WHERE tablename = 'users';
+   SELECT COUNT(*) as total_users FROM users;
    "
-   ```
-
-5. **Test Redis Cache**:
-
-   ```bash
-   # Check Redis connectivity
-   docker compose exec redis redis-cli ping
-
-   # Monitor cache usage
-   docker compose exec redis redis-cli info memory | grep used_memory_human
    ```
 
 ## Alternative: Local Python Development
@@ -222,18 +194,15 @@ docker compose logs -f postgres
 | Feature             | Development                             | Production                              |
 | ------------------- | --------------------------------------- | --------------------------------------- |
 | **Mode**            | Polling (bot asks Telegram for updates) | Webhook (Telegram sends updates to bot) |
-| **Database**        | Local PostgreSQL container with indexes | Remote PostgreSQL on VPS (optimized)    |
-| **Caching**         | Redis + memory fallback (same as prod)  | Redis + memory fallback                 |
-| **Logging**         | Human-readable format, DEBUG level      | JSON format, INFO level                 |
-| **Metrics**         | Available but not mandatory             | Prometheus metrics enabled              |
-| **Health Checks**   | Basic checks                            | Enhanced multi-service monitoring       |
-| **Service Layer**   | Full DI + Service Layer (same as prod)  | Full DI + Service Layer                 |
-| **Resource Limits** | None                                    | Memory/CPU limits for 2GB VPS           |
-| **Testing**         | 12 comprehensive tests available        | Tested before deployment                |
+| **Database**        | Local PostgreSQL container             | Remote PostgreSQL on VPS               |
+| **Logging**         | Human-readable format, DEBUG level     | Standard format, INFO level             |
+| **Operations**      | Direct database operations              | Direct database operations              |
+| **Resource Limits** | None                                    | Memory/CPU limits for VPS               |
+| **Testing**         | Simple test suite available            | Tested before deployment                |
 
-## Testing Infrastructure
+## Testing
 
-The bot now includes comprehensive testing suite:
+Simple testing for the simplified architecture:
 
 ### Running Tests
 
@@ -244,9 +213,6 @@ uv run pytest
 # Run tests with coverage
 uv run pytest --cov=app
 
-# Run specific test file
-uv run pytest tests/test_services.py
-
 # Run with verbose output
 uv run pytest -v
 ```
@@ -256,9 +222,8 @@ uv run pytest -v
 ```bash
 tests/
 ├── conftest.py          # Test fixtures and setup
-├── test_handlers.py     # Handler testing (4 tests)
-├── test_services.py     # Service layer testing (4 tests)
-└── test_webhook.py      # FastAPI webhook testing (4 tests)
+├── test_handlers.py     # Handler testing
+└── test_database.py     # Database operations testing
 ```
 
 ### Test Features
@@ -266,25 +231,20 @@ tests/
 - **SQLite in-memory database** for fast isolated tests
 - **Mock Telegram objects** for handler testing
 - **Async test support** with pytest-asyncio
-- **Service layer testing** with dependency injection
-- **FastAPI client testing** for webhook endpoints
+- **Direct database testing** without service layer
 
-### Test Examples
+### Simple Testing Example
 
-```bash
-# Test output example
-================================ test session starts ================================
-collected 12 items
+```python
+@pytest.mark.asyncio
+async def test_start_handler(test_session):
+    # Test direct handler function
+    message = create_mock_message("/start")
+    await start_handler(message, test_session)
 
-tests/test_handlers.py::test_start_handler_success ✓
-tests/test_handlers.py::test_start_handler_no_user ✓
-tests/test_services.py::test_get_or_create_user_new ✓
-tests/test_services.py::test_get_or_create_user_existing ✓
-tests/test_webhook.py::test_health_check ✓
-tests/test_webhook.py::test_metrics_endpoint ✓
-...
-
-================================ 12 passed in 2.34s ================================
+    # Verify user created
+    user = await test_session.get(User, message.from_user.id)
+    assert user is not None
 ```
 
 ## Troubleshooting
@@ -384,13 +344,11 @@ asyncio.run(test())
 ```env
 # Required
 BOT_TOKEN=your_telegram_bot_token
-PROJECT_NAME=telegram-bot
 DB_PASSWORD=local_password_123
 
 # Development settings
 ENVIRONMENT=development
 DEBUG=true
-LOG_LEVEL=DEBUG
 
 # Database (auto-configured in Docker)
 DATABASE_URL=postgresql+asyncpg://hello_user:local_password_123@postgres:5432/hello_bot
@@ -457,7 +415,7 @@ FROM pg_stat_user_tables;
 
 ## Next Steps
 
-- **Add Features**: Extend bot with new commands in `app/handlers/`
-- **Database Changes**: Add models and migrations
+- **Add Features**: Extend bot with new commands in `app/handlers.py`
+- **Database Changes**: Add models to `app/database.py` and create migrations
 - **Production Deploy**: Follow [Deployment Guide](DEPLOYMENT.md)
 - **Architecture**: Read [Technical Architecture](ARCHITECTURE.md)
