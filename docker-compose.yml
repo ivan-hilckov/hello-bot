@@ -29,9 +29,7 @@ services:
       PYTHONUNBUFFERED: "1"
     ports:
       - "8000:8000"
-    depends_on:
-      postgres-shared:
-        condition: service_healthy
+
     # Simple resource limits for bot
     deploy:
       resources:

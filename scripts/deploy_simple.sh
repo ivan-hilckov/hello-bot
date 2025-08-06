@@ -63,9 +63,7 @@ docker compose --profile production pull
 echo "🛑 Stopping existing bot services..."
 docker compose --profile production down
 
-# Run database migration
-echo "🗄️ Running database migration..."
-docker compose --profile migration up migration --exit-code-from migration
+# Database tables will be created automatically on bot startup
 
 # Start services
 echo "🚀 Starting services..."
