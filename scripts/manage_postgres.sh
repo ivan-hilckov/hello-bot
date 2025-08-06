@@ -17,7 +17,7 @@ ensure_postgres_running() {
     else
         echo "🚀 Creating new shared PostgreSQL..."
         export POSTGRES_ADMIN_PASSWORD="${POSTGRES_ADMIN_PASSWORD:-$(openssl rand -base64 32)}"
-        docker compose -f $POSTGRES_COMPOSE up -d
+        docker compose -f $POSTGRES_COMPOSE up -d --remove-orphans
     fi
     
     echo "⏳ Waiting for PostgreSQL..."

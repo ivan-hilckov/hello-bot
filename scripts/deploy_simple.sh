@@ -27,6 +27,12 @@ ls -la
 echo "🐳 Docker containers:"
 docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
+# Stop old individual PostgreSQL if running
+echo "🛑 Stopping old individual PostgreSQL containers..."
+docker stop hello-bot_postgres 2>/dev/null || echo "Old PostgreSQL container not running"
+docker stop hello-bot_app 2>/dev/null || echo "Old bot container not running"
+docker stop hello-bot_migration 2>/dev/null || echo "Old migration container not running"
+
 # Ensure shared PostgreSQL is running
 echo "🔍 Checking shared PostgreSQL..."
 ./scripts/manage_postgres.sh start
