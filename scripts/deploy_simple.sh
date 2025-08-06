@@ -18,6 +18,15 @@ for var in BOT_TOKEN DB_PASSWORD ENVIRONMENT BOT_IMAGE PROJECT_NAME; do
     fi
 done
 
+# Debug: Show current directory and files
+echo "📁 Current directory: $(pwd)"
+echo "📁 Available files:"
+ls -la
+
+# Debug: Check Docker status
+echo "🐳 Docker containers:"
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
 # Ensure shared PostgreSQL is running
 echo "🔍 Checking shared PostgreSQL..."
 ./scripts/manage_postgres.sh start
