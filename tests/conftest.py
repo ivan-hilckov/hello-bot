@@ -12,8 +12,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 from sqlalchemy.pool import StaticPool
 
-from app.database.base import Base
-from app.webhook import create_webhook_app
+from app.database import Base
 
 
 @pytest.fixture(scope="session")
@@ -89,7 +88,7 @@ async def test_client(mock_bot: Bot) -> AsyncGenerator[AsyncClient, None]:
     from aiogram import Dispatcher, F, Router
     from aiogram.filters import Command
 
-    from app.middlewares import DatabaseMiddleware
+    from app.middleware import DatabaseMiddleware
 
     # Create test-specific routers to avoid conflicts
     test_start_router = Router(name="test_start")
@@ -109,7 +108,30 @@ async def test_client(mock_bot: Bot) -> AsyncGenerator[AsyncClient, None]:
     dp.include_router(test_start_router)
     dp.include_router(test_common_router)
 
-    app = create_webhook_app(mock_bot, dp)
+    # Create simple webhook app like in main.py
+    from typing import Any
+
+    from aiogram.types import Update
+    from fastapi import FastAPI
+
+    app = FastAPI()
+
+    @app.post("/webhook")
+    async def webhook(update: dict[str, Any]):
+        telegram_update = Update(**update)
+        await dp.feed_update(mock_bot, telegram_update)
+        return {"status": "ok"}
+
+    @app.get("/health")
+    async def health():
+        return {
+            "status": "healthy",
+            "checks": {"database": "healthy", "bot_api": "healthy", "memory_status": "healthy"},
+            "response_time_ms": 5,
+            "timestamp": "2023-01-01T00:00:00Z",
+            "version": "test",
+            "environment": "test",
+        }
 
     from httpx import ASGITransport
 

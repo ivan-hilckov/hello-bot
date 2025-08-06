@@ -98,5 +98,89 @@
             "problemMatcher": [],
             "detail": "Format code with Ruff + run linter with auto-fix"
         },
+        {
+            "label": "🧪 Run Tests",
+            "type": "shell",
+            "command": "uv",
+            "args": [
+                "run",
+                "pytest",
+                "tests/",
+                "-v",
+                "--tb=short"
+            ],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "dedicated"
+            },
+            "problemMatcher": [],
+            "detail": "Run all tests with verbose output"
+        },
+        {
+            "label": "🧪 Run Tests with Coverage",
+            "type": "shell",
+            "command": "uv",
+            "args": [
+                "run",
+                "pytest",
+                "tests/",
+                "-v",
+                "--tb=short",
+                "--cov=app",
+                "--cov-report=term-missing",
+
+            ],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "dedicated"
+            },
+            "problemMatcher": [],
+            "detail": "Run tests with coverage report"
+        },
+        {
+            "label": "✅ Full Quality Check",
+            "type": "shell",
+            "command": "uv",
+            "args": [
+                "run",
+                "ruff",
+                "format",
+                ".",
+                "&&",
+                "uv",
+                "run",
+                "ruff",
+                "check",
+                "--fix",
+                ".",
+                "&&",
+                "uv",
+                "run",
+                "pytest",
+                "tests/",
+                "-v"
+            ],
+            "options": {
+                "shell": {
+                    "executable": "/bin/bash",
+                    "args": ["-c"]
+                }
+            },
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "dedicated"
+            },
+            "problemMatcher": [],
+            "detail": "Complete quality check: format + lint + tests (like CI/CD)"
+        },
     ]
 }

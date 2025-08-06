@@ -20,27 +20,13 @@ dependencies = [
     # Database (async PostgreSQL)
     "sqlalchemy[asyncio]>=2.0.0",
     "asyncpg>=0.29.0",
-    "alembic>=1.13.0",
 
     # Web server for webhooks
     "fastapi>=0.104.0",
     "uvicorn[standard]>=0.24.0",
 
-    # Structured logging
-    "structlog>=23.2.0",
-
     # Performance optimizations for 2GB RAM
     "uvloop>=0.19.0; sys_platform != 'win32'",  # Faster async event loop
-
-    # Monitoring and metrics
-    "prometheus-client>=0.19.0",  # Metrics collection
-
-    # Security and performance middleware
-    "slowapi>=0.1.9",  # Rate limiting
-
-    # Redis for caching (optional)
-    "redis>=5.0.0",
-    "hiredis>=2.0.0",  # Faster redis client
 ]
 
 [dependency-groups]
@@ -57,6 +43,7 @@ dev = [
     "ipython>=8.0.0",
     "watchfiles>=0.22.0", # File watching for hot reloading
     "pre-commit>=4.2.0",
+    "pytest-cov>=6.2.1",
 ]
 
 prod = [

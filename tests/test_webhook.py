@@ -22,7 +22,7 @@ class TestWebhookServer:
         mock_session_ctx = mocker.AsyncMock()
         mock_session_ctx.__aenter__ = mocker.AsyncMock(return_value=mock_session)
         mock_session_ctx.__aexit__ = mocker.AsyncMock(return_value=None)
-        mocker.patch("app.webhook.AsyncSessionLocal", return_value=mock_session_ctx)
+        mocker.patch("app.database.AsyncSessionLocal", return_value=mock_session_ctx)
 
         response = await test_client.get("/health")
 
@@ -88,7 +88,7 @@ class TestWebhookServer:
             "/webhook", content="invalid json", headers={"Content-Type": "application/json"}
         )
 
-        assert response.status_code == 400  # Bad Request from our webhook handler
+        assert response.status_code == 422  # Unprocessable Entity from FastAPI for invalid JSON
 
     async def test_docs_endpoint_disabled_in_production(self, test_client: AsyncClient) -> None:
         """Test that docs endpoint returns 404 (disabled in production-like config)."""

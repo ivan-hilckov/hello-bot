@@ -10,6 +10,7 @@ from aiogram.filters import Command
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.database import User
 
 logger = logging.getLogger(__name__)
@@ -22,7 +23,9 @@ router = Router()
 async def start_handler(message: types.Message, session: AsyncSession) -> None:
     """Handle /start command."""
     if not message.from_user:
-        await message.answer("Hello! Welcome to the bot, <b>Unknown</b>", parse_mode=ParseMode.HTML)
+        await message.answer(
+            f"Hello! Welcome to {settings.project_name}, <b>Unknown</b>", parse_mode=ParseMode.HTML
+        )
         return
 
     telegram_user = message.from_user
@@ -54,7 +57,7 @@ async def start_handler(message: types.Message, session: AsyncSession) -> None:
     await session.commit()
 
     # Send greeting
-    greeting = f"Hello! Welcome to the bot, 😎 <b>{user.display_name}</b>"
+    greeting = f"Hello! Welcome to {settings.project_name}, 😎 <b>{user.display_name}</b>"
     await message.answer(greeting, parse_mode=ParseMode.HTML)
 
 

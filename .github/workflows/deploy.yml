@@ -45,6 +45,9 @@ jobs:
       - name: Run formatter check
         run: uv run ruff format --check .
 
+      - name: Run tests
+        run: uv run pytest tests/ -v --tb=short
+
       - name: Validate Docker configuration
         run: |
           docker compose config

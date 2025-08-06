@@ -27,6 +27,11 @@ class Settings(BaseSettings):
     # Optional webhook for production
     webhook_url: str | None = Field(default=None, description="Webhook URL for production")
 
+    # Project settings
+    project_name: str = Field(
+        default="Hello Bot", description="Project name for greetings and display"
+    )
+
 
 # Global settings instance
 settings = Settings()

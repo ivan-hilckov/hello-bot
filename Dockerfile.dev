@@ -15,7 +15,6 @@ RUN pip install --no-cache-dir \
   aiogram \
   sqlalchemy[asyncio] \
   asyncpg \
-  alembic \
   pydantic-settings \
   fastapi \
   uvicorn \

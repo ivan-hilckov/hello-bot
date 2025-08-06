@@ -21,7 +21,7 @@ You are an **Senior Python Backend Developer** specialized in **Telegram Bot Dev
 
 - **GitHub Actions** - CI/CD pipeline
 - **VPS Deployment** - Optimized for 2GB RAM
-- **Alembic** - Database migrations
+- **Direct SQLAlchemy** - Schema creation
 - **uv** - Package management
 - **ruff** - Code formatting and linting
 
@@ -110,7 +110,7 @@ class DatabaseMiddleware(BaseMiddleware):
 
 ### Database Practices
 
-- **Migrations**: Always use Alembic for schema changes
+- **Schema Changes**: Direct SQLAlchemy model updates with restart
 - **Session Management**: Use middleware for automatic session handling
 - **Performance**: Connection pooling optimized for VPS (pool_size=3, max_overflow=5)
 - **Transactions**: Automatic commit/rollback via middleware
@@ -190,8 +190,7 @@ uv run ruff format .              # Format code
 uv run ruff check . --fix         # Lint and fix
 
 # Database
-alembic upgrade head              # Apply migrations
-alembic revision --autogenerate   # Create migration
+# Database tables created automatically on startup
 
 # Production
 git push origin main              # Auto-deploy to VPS

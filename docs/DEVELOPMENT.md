@@ -133,7 +133,7 @@ export BOT_TOKEN="your_token_here"
 export DATABASE_URL="postgresql+asyncpg://hello_user:local_password_123@localhost:5432/hello_bot"
 
 # Apply database migrations
-alembic upgrade head
+# Database tables created automatically on startup
 
 # Start the bot
 python -m app.main
@@ -158,13 +158,13 @@ docker compose -f docker-compose.dev.yml restart bot-dev
 
 ```bash
 # Create new migration
-alembic revision --autogenerate -m "description"
+# Modify models in app/database.py and restart
 
 # Apply migrations
-alembic upgrade head
+# Database tables created automatically on startup
 
 # View current migration
-alembic current
+# Check database tables: SELECT * FROM information_schema.tables;
 
 # Reset database (DESTRUCTIVE)
 docker compose -f docker-compose.dev.yml down -v

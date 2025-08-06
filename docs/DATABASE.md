@@ -24,7 +24,7 @@ erDiagram
 - **Database**: PostgreSQL 15 (Shared Container in Production)
 - **ORM**: SQLAlchemy 2.0 (async)
 - **Driver**: asyncpg
-- **Migrations**: Alembic
+- **Schema Management**: Direct SQLAlchemy table creation
 - **Architecture**: Single file structure (`app/database.py`)
 - **Production**: Shared PostgreSQL instance with isolated databases per bot
 
@@ -219,72 +219,53 @@ class DatabaseMiddleware(BaseMiddleware):
                 raise
 ```
 
-## Database Migrations
+## Schema Management
 
-### Alembic Configuration
+### Direct Table Creation
 
-**File**: `alembic/env.py`
-
-```python
-# Simple async migration setup
-from app.database import Base
-
-target_metadata = Base.metadata
-
-async def run_migrations_online():
-    connectable = create_async_engine(settings.database_url)
-
-    async with connectable.connect() as connection:
-        await connection.run_sync(do_run_migrations)
-
-def do_run_migrations(connection):
-    context.configure(
-        connection=connection,
-        target_metadata=target_metadata
-    )
-    with context.begin_transaction():
-        context.run_migrations()
-```
-
-### Migration Commands
-
-```bash
-# Create new migration
-alembic revision --autogenerate -m "add user table"
-
-# Apply migrations
-alembic upgrade head
-
-# Check current version
-alembic current
-
-# View migration history
-alembic history --verbose
-```
-
-### Initial Migration
-
-**File**: `alembic/versions/001_create_users_table.py`
+The Hello Bot template uses **direct SQLAlchemy table creation** instead of migrations for simplicity:
 
 ```python
-def upgrade():
-    op.create_table('users',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('telegram_id', sa.BigInteger(), nullable=False),
-        sa.Column('username', sa.String(length=255), nullable=True),
-        sa.Column('first_name', sa.String(length=255), nullable=True),
-        sa.Column('last_name', sa.String(length=255), nullable=True),
-        sa.Column('is_active', sa.Boolean(), nullable=False),
-        sa.Column('language_code', sa.String(length=10), nullable=True),
-        sa.Column('created_at', sa.DateTime(), nullable=False),
-        sa.Column('updated_at', sa.DateTime(), nullable=False),
-        sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index('ix_users_telegram_id', 'users', ['telegram_id'], unique=True)
+# app/database.py
+async def create_tables() -> None:
+    """Create all tables."""
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+```
 
-def downgrade():
-    op.drop_index('ix_users_telegram_id', table_name='users')
-    op.drop_table('users')
+This function is called automatically in `app/main.py` during startup:
+
+```python
+# app/main.py
+async def main() -> None:
+    """Main application function."""
+    # Create database tables
+    await create_tables()
+    logger.info("Database initialized")
+```
+
+### Schema Changes
+
+When you modify models:
+
+1. **Update the model** in `app/database.py`
+2. **Restart the application** - tables will be automatically updated
+3. **For production**, ensure backward compatibility or handle schema changes manually
+
+### Benefits of Direct Creation
+
+- **Simplicity**: No migration files to manage
+- **Template-friendly**: Easy to understand and modify
+- **Fast development**: Immediate schema changes
+- **Resource-efficient**: No migration overhead
+
+### Manual Schema Changes
+
+For complex schema changes in production:
+
+```python
+# Add new column manually if needed
+# ALTER TABLE users ADD COLUMN new_field VARCHAR(255);
 ```
 
 ## Performance Considerations

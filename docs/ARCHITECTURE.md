@@ -170,10 +170,7 @@ hello-bot/
 │   ├── database.py         # Models + Session + Engine (92 lines)
 │   ├── handlers.py         # All handlers (70 lines)
 │   └── middleware.py       # Database middleware (33 lines)
-├── alembic/                # Database migrations
-│   ├── env.py             # Migration configuration
-│   └── versions/          # Migration files
-├── docs/                  # Documentation
+├── docs/                   # Documentation
 ├── scripts/               # Deployment scripts
 ├── tests/                 # Test suite
 ├── docker-compose.yml     # Container orchestration

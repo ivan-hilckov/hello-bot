@@ -2,37 +2,7 @@
 # For development, use: docker compose -f docker-compose.dev.yml up
 
 services:
-  # Database Migration Service (runs before app startup)
-  migration:
-    image: ${BOT_IMAGE}
-    container_name: ${PROJECT_NAME}_migration
-    env_file: .env
-    environment:
-      DATABASE_URL: postgresql+asyncpg://${PROJECT_NAME}_user:${DB_PASSWORD}@postgres-shared:5432/${PROJECT_NAME}_db
-    command: [ "alembic", "upgrade", "head" ]
-    depends_on:
-      - postgres-check
-    networks:
-      - shared_network
-    profiles:
-      - migration
-      - production
-    restart: "no" # Run once and exit
 
-  # PostgreSQL Check Service (ensures shared DB is ready)
-  postgres-check:
-    image: postgres:15-alpine
-    container_name: ${PROJECT_NAME}_db_check
-    command: >
-      sh -c "until pg_isready -h postgres-shared -p 5432 -U postgres; do
-        echo 'Waiting for PostgreSQL...'; sleep 2;
-      done && echo 'PostgreSQL ready!'"
-    networks:
-      - shared_network
-    profiles:
-      - migration
-      - production
-    restart: "no"
 
   # Telegram Bot Application (Production)
   bot:
@@ -60,10 +30,8 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      postgres-check:
-        condition: service_completed_successfully
-      migration:
-        condition: service_completed_successfully
+      postgres-shared:
+        condition: service_healthy
     # Simple resource limits for bot
     deploy:
       resources:

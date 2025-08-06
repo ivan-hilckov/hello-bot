@@ -108,7 +108,7 @@ Development Mode          Production Mode (Shared PostgreSQL)
 - **SQLAlchemy 2.0** async + PostgreSQL
 - **Docker Compose** for containerization
 - **GitHub Actions** for CI/CD
-- **Alembic** for database migrations
+- **Direct schema creation** with SQLAlchemy
 
 ## Commands
 
@@ -121,6 +121,7 @@ Development Mode          Production Mode (Shared PostgreSQL)
 - **[Development Setup](docs/DEVELOPMENT.md)** - Local development environment
 - **[Production Deployment](docs/DEPLOYMENT.md)** - VPS deployment guide
 - **[Architecture](docs/ARCHITECTURE.md)** - Technical architecture & dependencies
+- **[Technologies](docs/TECHNOLOGIES.md)** - Complete technology stack reference
 - **[Database](docs/DATABASE.md)** - Database models & schema
 - **[Bot API](docs/API.md)** - Bot commands & handlers
 - **[Working with Claude](CLAUDE.md)** - AI assistant collaboration guide
@@ -158,8 +159,7 @@ uv run ruff format .              # Format code
 uv run ruff check . --fix         # Lint code
 
 # Database
-alembic upgrade head              # Apply migrations
-alembic revision --autogenerate   # Create migration
+# Database tables are created automatically on bot startup
 ```
 
 ## License

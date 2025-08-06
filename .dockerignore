@@ -88,7 +88,5 @@ node_modules/
 
 # Exclude everything in root except what's needed
 !app/
-!alembic/
 !pyproject.toml
 !uv.lock
-!alembic.ini

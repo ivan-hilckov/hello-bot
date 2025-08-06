@@ -19,7 +19,6 @@ RUN uv venv && \
     aiogram \
     sqlalchemy[asyncio] \
     asyncpg \
-    alembic \
     pydantic-settings \
     fastapi \
     uvicorn
@@ -38,10 +37,6 @@ COPY --from=builder --chown=botuser:botuser /app/.venv /app/.venv
 
 # Make sure we use venv
 ENV PATH="/app/.venv/bin:$PATH"
-
-# Copy alembic configuration
-COPY --chown=botuser:botuser alembic.ini ./
-COPY --chown=botuser:botuser alembic/ ./alembic/
 
 # Copy application code
 COPY --chown=botuser:botuser app/ ./app/
