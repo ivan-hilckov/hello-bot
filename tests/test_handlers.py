@@ -43,7 +43,9 @@ class TestStartHandler:
         # Assert - message should be sent
         message.answer.assert_called_once()
         greeting_text = message.answer.call_args[0][0]
-        assert "Hello!" in greeting_text
+        assert "Hello" in greeting_text
+        assert "About Hello Bot" in greeting_text
+        assert "github.com/ivan-hilckov/hello-bot" in greeting_text
         # Display name uses username first, then full_name
         assert telegram_user.username in greeting_text
 
@@ -101,5 +103,5 @@ class TestStartHandler:
         # Assert - appropriate message should be sent
         message.answer.assert_called_once()
         greeting_text = message.answer.call_args[0][0]
-        assert "Hello!" in greeting_text
+        assert "Hello" in greeting_text
         assert "Unknown" in greeting_text
