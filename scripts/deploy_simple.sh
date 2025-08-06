@@ -8,7 +8,7 @@ echo "🚀 Starting Hello Bot deployment with shared PostgreSQL..."
 
 # Configuration
 DEPLOY_DIR="${HOME}/hello-bot"
-cd "$DEPLOY_DIR" || { echo "❌ Deployment directory not found"; exit 1; }
+# Note: We're already in the deployment directory from GitHub Actions
 
 # Validate required environment variables
 for var in BOT_TOKEN DB_PASSWORD ENVIRONMENT BOT_IMAGE PROJECT_NAME; do

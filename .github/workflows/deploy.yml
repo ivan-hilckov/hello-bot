@@ -169,8 +169,27 @@ jobs:
           port: ${{ secrets.VPS_PORT || 22 }}
           envs: BOT_TOKEN,DB_PASSWORD,POSTGRES_ADMIN_PASSWORD,ENVIRONMENT,BOT_IMAGE,PROJECT_NAME,WEBHOOK_URL,WEBHOOK_SECRET_TOKEN
           script: |
-            # Run simplified production deployment script
+            # Set up deployment directory and permissions
             cd /tmp/${{ github.event.repository.name }}-deploy
+            
+            # Ensure scripts are executable
+            chmod +x scripts/*.sh
+            
+            # Verify required files exist
+            echo "📁 Checking deployment files..."
+            ls -la scripts/ || echo "❌ scripts directory missing"
+            test -f scripts/manage_postgres.sh && echo "✅ manage_postgres.sh found" || echo "❌ manage_postgres.sh missing"
+            test -f scripts/deploy_simple.sh && echo "✅ deploy_simple.sh found" || echo "❌ deploy_simple.sh missing"
+            test -f docker-compose.postgres.yml && echo "✅ docker-compose.postgres.yml found" || echo "❌ docker-compose.postgres.yml missing"
+            
+            # Copy files to final deployment directory
+            echo "📂 Setting up final deployment directory..."
+            mkdir -p $HOME/${{ github.event.repository.name }}
+            cp -r * $HOME/${{ github.event.repository.name }}/
+            cd $HOME/${{ github.event.repository.name }}
+            
+            # Run simplified production deployment script
+            echo "🚀 Starting deployment..."
             ./scripts/deploy_simple.sh
 
       - name: Verify deployment
