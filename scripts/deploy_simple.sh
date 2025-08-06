@@ -63,6 +63,14 @@ docker compose --profile production pull
 echo "🛑 Stopping existing bot services..."
 docker compose --profile production down
 
+# Stop any containers using port 8000 to prevent conflicts
+echo "🔍 Checking for port 8000 conflicts..."
+CONFLICTING_CONTAINERS=$(docker ps --filter "publish=8000" --format "{{.Names}}" | grep -v "^${PROJECT_NAME}_app$" || true)
+if [ ! -z "$CONFLICTING_CONTAINERS" ]; then
+    echo "🛑 Stopping containers using port 8000: $CONFLICTING_CONTAINERS"
+    echo "$CONFLICTING_CONTAINERS" | xargs -r docker stop
+fi
+
 # Database tables will be created automatically on bot startup
 
 # Start services
