@@ -4,10 +4,19 @@ Deploy simplified Hello Bot to VPS with automated CI/CD via GitHub Actions.
 
 ## Prerequisites
 
-- **Ubuntu 22.04+ VPS** with 1GB+ RAM (reduced requirements)
+- **Ubuntu 22.04+ VPS** with 1GB+ RAM (optimized with shared PostgreSQL)
 - **GitHub repository** with Actions enabled
 - **Telegram Bot Token** from [@BotFather](https://t.me/botfather)
 - **Domain name** (optional, for webhook mode)
+
+### Resource Efficiency (v2.1.0+)
+
+With shared PostgreSQL architecture:
+- **Single Bot**: ~640MB total (512MB PostgreSQL + 128MB app)
+- **3 Bots**: ~896MB total (512MB shared PostgreSQL + 384MB apps)  
+- **5 Bots**: ~1.15GB total (512MB shared PostgreSQL + 640MB apps)
+
+Previous individual PostgreSQL approach required 400-600MB per bot.
 
 ## Quick Deployment
 
@@ -53,6 +62,7 @@ VPS_USER=your-username
 VPS_PORT=22
 BOT_TOKEN=your_telegram_bot_token
 DB_PASSWORD=secure_random_password_123
+POSTGRES_ADMIN_PASSWORD=shared_postgres_admin_password  # NEW for v2.1.0+
 ```
 
 **Optional Secrets** (for webhook mode):

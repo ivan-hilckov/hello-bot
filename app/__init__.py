@@ -7,4 +7,4 @@ A clean, straightforward Telegram bot with:
 - Perfect for learning and small projects
 """
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"

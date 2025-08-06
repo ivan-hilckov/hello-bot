@@ -21,11 +21,12 @@ erDiagram
 
 ## Technology Stack
 
-- **Database**: PostgreSQL 15
+- **Database**: PostgreSQL 15 (Shared Container in Production)
 - **ORM**: SQLAlchemy 2.0 (async)
 - **Driver**: asyncpg
 - **Migrations**: Alembic
 - **Architecture**: Single file structure (`app/database.py`)
+- **Production**: Shared PostgreSQL instance with isolated databases per bot
 
 ## Simplified Database Structure
 
@@ -66,6 +67,76 @@ class User(Base, TimestampMixin):
 # Session management
 engine = create_async_engine(settings.database_url)
 AsyncSessionLocal = async_sessionmaker(bind=engine, class_=AsyncSession)
+```
+
+## Shared PostgreSQL Configuration (v2.1.0+)
+
+### Production Architecture
+
+In production, multiple bots share a single PostgreSQL instance for optimal resource usage:
+
+```mermaid
+graph LR
+    subgraph "Shared PostgreSQL Container"
+        DB[(PostgreSQL 15<br/>512MB)]
+    end
+    
+    subgraph "Isolated Databases"
+        DB1[hello-bot_db]
+        DB2[chatbot_db]
+        DB3[mybot_db]
+    end
+    
+    subgraph "Bot Applications"
+        BOT1[Hello Bot<br/>128MB]
+        BOT2[Chat Bot<br/>128MB]
+        BOT3[My Bot<br/>128MB]
+    end
+    
+    DB --> DB1
+    DB --> DB2
+    DB --> DB3
+    
+    BOT1 -.-> DB1
+    BOT2 -.-> DB2
+    BOT3 -.-> DB3
+```
+
+### Database Connection Configuration
+
+Each bot connects to its isolated database within the shared PostgreSQL instance:
+
+```python
+# Connection string format for shared PostgreSQL
+DATABASE_URL = "postgresql+asyncpg://{PROJECT_NAME}_user:{DB_PASSWORD}@postgres-shared:5432/{PROJECT_NAME}_db"
+
+# Example for hello-bot
+DATABASE_URL = "postgresql+asyncpg://hello-bot_user:secure_password@postgres-shared:5432/hello-bot_db"
+```
+
+### Resource Optimization
+
+| Deployment | Individual PostgreSQL | Shared PostgreSQL | Memory Savings |
+|------------|----------------------|------------------|----------------|
+| **3 Bots** | 768MB (256MB × 3) | 512MB | **256MB (33%)** |
+| **5 Bots** | 1.28GB (256MB × 5) | 512MB | **768MB (60%)** |
+| **10 Bots** | 2.56GB (256MB × 10) | 512MB | **2.05GB (80%)** |
+
+### Connection Pool Settings
+
+Optimized for shared PostgreSQL usage:
+
+```python
+# app/database.py - Optimized for shared instance
+engine = create_async_engine(
+    settings.database_url,
+    echo=settings.debug,
+    future=True,
+    pool_size=2,        # Reduced per bot (shared instance)
+    max_overflow=3,     # Controlled overflow
+    pool_timeout=30,
+    pool_recycle=3600,
+)
 ```
 
 ## User Model

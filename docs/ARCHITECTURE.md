@@ -54,6 +54,111 @@ graph TD
     T --> R
 ```
 
+## Shared PostgreSQL Architecture (v2.1.0+)
+
+### Production Infrastructure Optimization
+
+```mermaid
+graph TB
+    subgraph "VPS Server (2GB RAM)"
+        subgraph "Shared PostgreSQL Container (512MB)"
+            DB[(PostgreSQL 15)]
+            DB1[hello-bot_db]
+            DB2[chatbot_db] 
+            DB3[mybot_db]
+            
+            DB --> DB1
+            DB --> DB2
+            DB --> DB3
+        end
+        
+        subgraph "Bot Containers (128MB each)"
+            BOT1[Hello Bot App]
+            BOT2[Chat Bot App]
+            BOT3[My Bot App]
+        end
+        
+        BOT1 -.->|postgres-shared:5432| DB1
+        BOT2 -.->|postgres-shared:5432| DB2
+        BOT3 -.->|postgres-shared:5432| DB3
+    end
+    
+    subgraph "GitHub Actions Pipeline"
+        BUILD[Build & Test]
+        DEPLOY[Deploy Script]
+        SHARED[Shared PostgreSQL Setup]
+        
+        BUILD --> DEPLOY
+        DEPLOY --> SHARED
+    end
+    
+    SHARED --> DB
+```
+
+### Resource Optimization Benefits
+
+| Metric | Individual PostgreSQL | Shared PostgreSQL | Savings |
+|--------|----------------------|------------------|---------|
+| **3 Bots** | 768MB (256MB × 3) | 512MB | **33%** |
+| **5 Bots** | 1.28GB (256MB × 5) | 512MB | **60%** |
+| **10 Bots** | 2.56GB (256MB × 10) | 512MB | **80%** |
+
+### Database Isolation
+
+Each bot gets its own isolated database and user:
+
+```sql
+-- Example for hello-bot deployment
+CREATE DATABASE "hello-bot_db";
+CREATE USER "hello-bot_user" WITH ENCRYPTED PASSWORD 'secure_password';
+GRANT ALL PRIVILEGES ON DATABASE "hello-bot_db" TO "hello-bot_user";
+```
+
+### Configuration Changes
+
+**Shared PostgreSQL** (`docker-compose.postgres.yml`):
+```yaml
+services:
+  postgres-shared:
+    image: postgres:15-alpine
+    container_name: vps_postgres_shared
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - shared_network
+```
+
+**Bot Configuration** (`docker-compose.yml`):
+```yaml
+services:
+  bot:
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${PROJECT_NAME}_user:${DB_PASSWORD}@postgres-shared:5432/${PROJECT_NAME}_db
+    networks:
+      - shared_network
+
+networks:
+  shared_network:
+    name: vps_shared_network
+    external: true
+```
+
+### Management Script
+
+**File**: `scripts/manage_postgres.sh`
+
+```bash
+# Start shared PostgreSQL
+./scripts/manage_postgres.sh start
+
+# Create database for new bot
+./scripts/manage_postgres.sh create "mybot" "secure_password"
+```
+
 ## Simplified Project Structure
 
 ```
