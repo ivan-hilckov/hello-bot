@@ -42,28 +42,41 @@ create_bot_database() {
     # Ensure container is running first
     ensure_postgres_running
     
-    # Create database and user (PostgreSQL syntax)
-    docker exec vps_postgres_shared psql -U postgres << EOF || {
-        echo "❌ Failed to create database"
-        exit 1
-    }
--- Create database if not exists
-SELECT 'CREATE DATABASE ${BOT_NAME}_db'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '${BOT_NAME}_db')\gexec
-
--- Create user if not exists  
-DO \$\$
-BEGIN
-    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${BOT_NAME}_user') THEN
-        CREATE USER ${BOT_NAME}_user WITH ENCRYPTED PASSWORD '${BOT_PASSWORD}';
-    END IF;
-END
-\$\$;
-
--- Grant privileges
-GRANT ALL PRIVILEGES ON DATABASE ${BOT_NAME}_db TO ${BOT_NAME}_user;
-GRANT ALL ON SCHEMA public TO ${BOT_NAME}_user;
-EOF
+    # Check if database already exists
+    DB_EXISTS=$(docker exec vps_postgres_shared psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname='${BOT_NAME}_db';" 2>/dev/null || echo "")
+    
+    if [[ "$DB_EXISTS" == "1" ]]; then
+        echo "✅ Database ${BOT_NAME}_db already exists"
+    else
+        echo "Creating database ${BOT_NAME}_db..."
+        docker exec vps_postgres_shared psql -U postgres -c "CREATE DATABASE \"${BOT_NAME}_db\";" || {
+            echo "❌ Failed to create database"
+            exit 1
+        }
+    fi
+    
+    # Check if user already exists
+    USER_EXISTS=$(docker exec vps_postgres_shared psql -U postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='${BOT_NAME}_user';" 2>/dev/null || echo "")
+    
+    if [[ "$USER_EXISTS" == "1" ]]; then
+        echo "✅ User ${BOT_NAME}_user already exists"
+    else
+        echo "Creating user ${BOT_NAME}_user..."
+        docker exec vps_postgres_shared psql -U postgres -c "CREATE USER \"${BOT_NAME}_user\" WITH ENCRYPTED PASSWORD '${BOT_PASSWORD}';" || {
+            echo "❌ Failed to create user"
+            exit 1
+        }
+    fi
+    
+    echo "Granting privileges..."
+    docker exec vps_postgres_shared psql -U postgres -c "
+        GRANT ALL PRIVILEGES ON DATABASE \"${BOT_NAME}_db\" TO \"${BOT_NAME}_user\";
+    " 2>/dev/null || echo "Privileges grant failed"
+    
+    # Additional schema privileges
+    docker exec vps_postgres_shared psql -U postgres -d "${BOT_NAME}_db" -c "
+        GRANT ALL ON SCHEMA public TO \"${BOT_NAME}_user\";
+    " 2>/dev/null || echo "Schema privileges grant failed"
     
     echo "✅ Database ${BOT_NAME}_db ready"
 }
