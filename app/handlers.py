@@ -56,15 +56,74 @@ async def start_handler(message: types.Message, session: AsyncSession) -> None:
 
     await session.commit()
 
-    # Send greeting
-    greeting = f"Hello! Welcome to {settings.project_name}, 😎 <b>{user.display_name}</b>"
-    await message.answer(greeting, parse_mode=ParseMode.HTML)
+    # Send comprehensive project information
+    info_message = f"""👋 Hello <b>{user.display_name}</b>!
+
+🤖 <b>About Hello Bot</b>
+This is a production-ready Telegram bot template designed for AI-assisted development. It's built with modern Python technologies and optimized for rapid bot creation and evolution.
+
+🚀 <b>Key Features:</b>
+• AI-Optimized for collaboration with Claude, Cursor, and ChatGPT
+• Production-ready with single git push deployment
+• Resource efficient (optimized for 2GB VPS)
+• Simple architecture (~320 lines of code)
+• Built-in PostgreSQL integration
+
+🛠️ <b>Tech Stack:</b>
+• aiogram 3.0+ (Async Telegram Bot framework)
+• SQLAlchemy 2.0 (Async PostgreSQL ORM)
+• FastAPI (Webhook server)
+• Docker + PostgreSQL
+
+📂 <b>Repository:</b> https://github.com/ivan-hilckov/hello-bot
+
+👨‍💻 <b>Creator:</b> https://github.com/ivan-hilckov
+
+This template helps developers create Telegram bots quickly and evolve them systematically with AI assistance. Perfect for both beginners and experienced developers looking for a solid foundation."""
+
+    await message.answer(info_message, parse_mode=ParseMode.HTML)
 
 
 @router.message(F.text)
 async def default_handler(message: types.Message) -> None:
-    """Handle all other text messages."""
-    await message.answer("Send /start to get a greeting!")
+    """Handle all other text messages with comprehensive bot information."""
+
+    # Get user display name
+    display_name = "there"
+    if message.from_user:
+        if message.from_user.first_name:
+            display_name = message.from_user.first_name
+        elif message.from_user.username:
+            display_name = message.from_user.username
+
+    # Send comprehensive project information
+    info_message = f"""👋 Hello <b>{display_name}</b>!
+
+🤖 <b>About Hello Bot</b>
+This is a production-ready Telegram bot template designed for AI-assisted development. It's built with modern Python technologies and optimized for rapid bot creation and evolution.
+
+🚀 <b>Key Features:</b>
+• AI-Optimized for collaboration with Claude, Cursor, and ChatGPT
+• Production-ready with single git push deployment
+• Resource efficient (optimized for 2GB VPS)
+• Simple architecture (~320 lines of code)
+• Built-in PostgreSQL integration
+
+🛠️ <b>Tech Stack:</b>
+• aiogram 3.0+ (Async Telegram Bot framework)
+• SQLAlchemy 2.0 (Async PostgreSQL ORM)
+• FastAPI (Webhook server)
+• Docker + PostgreSQL
+
+📂 <b>Repository:</b> https://github.com/ivan-hilckov/hello-bot
+
+👨‍💻 <b>Creator:</b> https://github.com/ivan-hilckov
+
+This template helps developers create Telegram bots quickly and evolve them systematically with AI assistance. Perfect for both beginners and experienced developers looking for a solid foundation.
+
+💡 <b>Try:</b> Send /start to register in the database and get personalized greeting!"""
+
+    await message.answer(info_message, parse_mode=ParseMode.HTML)
 
     if message.from_user:
         logger.info(
