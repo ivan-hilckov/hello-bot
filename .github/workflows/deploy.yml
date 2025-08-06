@@ -133,6 +133,7 @@ jobs:
 
           # Copy necessary files for production deployment
           cp docker-compose.yml deploy/
+          cp docker-compose.postgres.yml deploy/
           cp -r scripts deploy/
           cp .env.example deploy/
           chmod +x deploy/scripts/*.sh
@@ -155,6 +156,7 @@ jobs:
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          POSTGRES_ADMIN_PASSWORD: ${{ secrets.POSTGRES_ADMIN_PASSWORD }}
           ENVIRONMENT: ${{ github.event.inputs.environment || 'production' }}
           BOT_IMAGE: ${{ env.IMAGE_NAME }}:latest
           PROJECT_NAME: hello-bot
@@ -165,7 +167,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
-          envs: BOT_TOKEN,DB_PASSWORD,ENVIRONMENT,BOT_IMAGE,PROJECT_NAME,WEBHOOK_URL,WEBHOOK_SECRET_TOKEN
+          envs: BOT_TOKEN,DB_PASSWORD,POSTGRES_ADMIN_PASSWORD,ENVIRONMENT,BOT_IMAGE,PROJECT_NAME,WEBHOOK_URL,WEBHOOK_SECRET_TOKEN
           script: |
             # Run simplified production deployment script
             cd /tmp/${{ github.event.repository.name }}-deploy

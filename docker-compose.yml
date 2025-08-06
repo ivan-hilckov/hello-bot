@@ -8,50 +8,31 @@ services:
     container_name: ${PROJECT_NAME}_migration
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://hello_user:${DB_PASSWORD}@postgres:5432/hello_bot
+      DATABASE_URL: postgresql+asyncpg://${PROJECT_NAME}_user:${DB_PASSWORD}@postgres-shared:5432/${PROJECT_NAME}_db
     command: [ "alembic", "upgrade", "head" ]
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres-check
     networks:
-      - bot_network
+      - shared_network
     profiles:
       - migration
       - production
     restart: "no" # Run once and exit
 
-  # PostgreSQL Database (Simple configuration)
-  postgres:
+  # PostgreSQL Check Service (ensures shared DB is ready)
+  postgres-check:
     image: postgres:15-alpine
-    container_name: ${PROJECT_NAME}_postgres
-    environment:
-      POSTGRES_DB: hello_bot
-      POSTGRES_USER: hello_user
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "${DB_PORT:-5432}:5432"
-    # Simple resource limits
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-        reservations:
-          memory: 128M
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U hello_user -d hello_bot" ]
-      interval: 10s
-      timeout: 5s
-      retries: 6
-      start_period: 30s
-    restart: unless-stopped
+    container_name: ${PROJECT_NAME}_db_check
+    command: >
+      sh -c "until pg_isready -h postgres-shared -p 5432 -U postgres; do
+        echo 'Waiting for PostgreSQL...'; sleep 2;
+      done && echo 'PostgreSQL ready!'"
     networks:
-      - bot_network
+      - shared_network
     profiles:
-      - production
       - migration
+      - production
+    restart: "no"
 
   # Telegram Bot Application (Production)
   bot:
@@ -60,7 +41,7 @@ services:
     env_file: .env
     environment:
       # Database configuration
-      DATABASE_URL: postgresql+asyncpg://hello_user:${DB_PASSWORD}@postgres:5432/hello_bot
+      DATABASE_URL: postgresql+asyncpg://${PROJECT_NAME}_user:${DB_PASSWORD}@postgres-shared:5432/${PROJECT_NAME}_db
 
       # Bot configuration
       BOT_TOKEN: ${BOT_TOKEN}
@@ -79,8 +60,8 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      postgres:
-        condition: service_healthy
+      postgres-check:
+        condition: service_completed_successfully
       migration:
         condition: service_completed_successfully
     # Simple resource limits for bot
@@ -92,7 +73,7 @@ services:
           memory: 64M
     restart: unless-stopped
     networks:
-      - bot_network
+      - shared_network
     # Simple health check
     healthcheck:
       test: [ "CMD", "python", "-c", "from app.config import settings; exit(0 if settings.bot_token else 1)" ]
@@ -103,11 +84,7 @@ services:
     profiles:
       - production
 
-volumes:
-  postgres_data:
-    name: ${PROJECT_NAME}_postgres_data
-
 networks:
-  bot_network:
-    name: ${PROJECT_NAME}_network
-    driver: bridge
+  shared_network:
+    name: vps_shared_network
+    external: true

@@ -58,11 +58,15 @@ class User(Base, TimestampMixin):
         return " ".join(part for part in parts if part)
 
 
-# Create engine and session
+# Create engine and session with optimized pool for shared PostgreSQL
 engine = create_async_engine(
     settings.database_url,
     echo=settings.debug,
     future=True,
+    pool_size=2,        # Reduced per bot (shared instance)
+    max_overflow=3,     # Reduced overflow
+    pool_timeout=30,
+    pool_recycle=3600,
 )
 
 AsyncSessionLocal = async_sessionmaker(

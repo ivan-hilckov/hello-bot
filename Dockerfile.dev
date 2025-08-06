@@ -18,7 +18,8 @@ RUN pip install --no-cache-dir \
   alembic \
   pydantic-settings \
   fastapi \
-  uvicorn
+  uvicorn \
+  watchdog
 
 # Create app directory and set permissions
 RUN chown -R botuser:botuser /app
@@ -29,5 +30,5 @@ USER botuser
 # The application code will be mounted as volume in development
 # No need to COPY code since it will be live-mounted
 
-# Run bot directly - hot reload via Docker volumes
-CMD ["python", "-m", "app.main"]
+# Run bot with hot reload using watchdog
+CMD ["watchmedo", "auto-restart", "--patterns=*.py", "--recursive", "--", "python", "-m", "app.main"]

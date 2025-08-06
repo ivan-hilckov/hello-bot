@@ -1,10 +1,10 @@
 #!/bin/bash
-# Simplified production deployment for Hello Bot
+# Simplified production deployment for Hello Bot with shared PostgreSQL
 # Reduces complexity from 480 to 50 lines (90% reduction)
 
 set -e
 
-echo "🚀 Starting Hello Bot deployment..."
+echo "🚀 Starting Hello Bot deployment with shared PostgreSQL..."
 
 # Configuration
 DEPLOY_DIR="${HOME}/hello-bot"
@@ -17,6 +17,14 @@ for var in BOT_TOKEN DB_PASSWORD ENVIRONMENT BOT_IMAGE PROJECT_NAME; do
         exit 1
     fi
 done
+
+# Ensure shared PostgreSQL is running
+echo "🔍 Checking shared PostgreSQL..."
+./scripts/manage_postgres.sh start
+
+# Create database for this bot
+echo "📊 Setting up database for ${PROJECT_NAME}..."
+./scripts/manage_postgres.sh create "${PROJECT_NAME}" "${DB_PASSWORD}"
 
 echo "📝 Creating production environment..."
 cat > .env << EOF
@@ -36,8 +44,8 @@ EOF
 echo "📦 Pulling latest images..."
 docker compose --profile production pull
 
-# Stop existing services
-echo "🛑 Stopping existing services..."
+# Stop existing bot services (not shared PostgreSQL)
+echo "🛑 Stopping existing bot services..."
 docker compose --profile production down
 
 # Run database migration
@@ -58,4 +66,4 @@ else
     exit 1
 fi
 
-echo "🎉 Hello Bot deployed successfully!"
+echo "🎉 Hello Bot deployed successfully with shared PostgreSQL!"

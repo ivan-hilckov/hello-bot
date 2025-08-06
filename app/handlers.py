@@ -54,7 +54,7 @@ async def start_handler(message: types.Message, session: AsyncSession) -> None:
     await session.commit()
 
     # Send greeting
-    greeting = f"Hello! Welcome to the bot, 🚀 <b>{user.display_name}</b>"
+    greeting = f"Hello! Welcome to the bot, 🚀🚀🚀🚀 <b>{user.display_name}</b>"
     await message.answer(greeting, parse_mode=ParseMode.HTML)
 
 
