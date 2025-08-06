@@ -63,8 +63,8 @@ engine = create_async_engine(
     settings.database_url,
     echo=settings.debug,
     future=True,
-    pool_size=2,        # Reduced per bot (shared instance)
-    max_overflow=3,     # Reduced overflow
+    pool_size=2,  # Reduced per bot (shared instance)
+    max_overflow=3,  # Reduced overflow
     pool_timeout=30,
     pool_recycle=3600,
 )
