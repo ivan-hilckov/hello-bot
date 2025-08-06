@@ -1,62 +1,86 @@
-# Hello Bot
+# Hello Bot Template 🚀
 
-Simple Telegram bot with PostgreSQL integration and automated deployment.
+**Production-ready GitHub template for rapid Telegram bot development with AI-assisted evolution.**
 
-## Quick Start
+A complete, working Telegram bot optimized for AI collaboration with Claude, Cursor, and other coding assistants. Deploy your first bot in minutes, then evolve it into anything you need.
 
-### 1. Get Bot Token
+## 🎯 Why This Template?
 
-- Message [@BotFather](https://t.me/botfather) → `/newbot` → copy token
+- ✅ **AI-Optimized**: Designed for collaboration with Claude, Cursor, and ChatGPT
+- ✅ **Production Ready**: Deploy to VPS with single `git push`
+- ✅ **Simple Architecture**: ~320 lines, easy to understand and modify
+- ✅ **Resource Efficient**: Shared PostgreSQL, optimized for 2GB VPS
+- ✅ **Template System**: Built-in prompts for systematic bot evolution
 
-### 2. Configure Environment
+## 🚀 Quick Start
+
+### 1. Use This Template
+- Click **"Use this template"** → **"Create a new repository"**
+- Clone your new repository locally
+
+### 2. Setup Development Environment
+
+**Prerequisites**: [uv](https://docs.astral.sh/uv/getting-started/installation/) (Python package manager)
 
 ```bash
-# Clone repository
-git clone <repository>
-cd hello-bot
+# Clone your new repository
+git clone https://github.com/your-username/your-bot-name
+cd your-bot-name
 
-# Copy and configure environment
+# Setup Python environment
+uv sync
+
+# Configure environment
 cp .env.example .env
+# Edit .env with your bot token from @BotFather
 ```
 
-**Edit `.env` with required values:**
+### 3. Get Bot Token
+- Message [@BotFather](https://t.me/botfather) → `/newbot` → copy token
+- Add to `.env`: `BOT_TOKEN=your_token_here`
 
-```env
-BOT_TOKEN=your_telegram_bot_token_from_botfather
-DB_PASSWORD=secure_local_password
-ENVIRONMENT=development
-DEBUG=true
-```
-
-### 3. Start Development Environment
-
+### 4. Start Development
 ```bash
-# Start all services (PostgreSQL + Bot)
-docker compose up -d
+# Start development environment
+docker compose -f docker-compose.dev.yml up -d
 
-# View logs to verify startup
-docker compose logs -f bot
+# View logs  
+docker compose -f docker-compose.dev.yml logs -f bot-dev
 ```
 
-### 4. Verify Setup
+### 5. Verify Setup
+- Send `/start` to your bot → should respond with personalized greeting
+- User record automatically created in PostgreSQL database
 
-- **Test Bot**: Send `/start` to your bot → should respond with personalized greeting
-- **Check Services**: `docker compose ps` → all services should be running
-- **View Database**: User record should be created automatically
+## 🤖 AI-Assisted Development
 
-### 5. Development Commands
+### Ready for AI Collaboration
+This template is optimized for working with AI coding assistants:
 
-```bash
-# Code formatting & linting
-uv run ruff format .
-uv run ruff check . --fix
+**Step 1**: Read [`prompts/START.md`](prompts/START.md) - main template for creating new bots  
+**Step 2**: Use [`.cursorrules`](.cursorrules) - Cursor AI context file  
+**Step 3**: Reference [`CLAUDE.md`](CLAUDE.md) - Claude collaboration guide
 
-# Database migrations
-alembic upgrade head
+### AI Collaboration Prompts
+- **[`prompts/START.md`](prompts/START.md)** - Create new bot from template
+- **[`prompts/add_feature.md`](prompts/add_feature.md)** - Add new features systematically  
+- **[`prompts/analyze_file.md`](prompts/analyze_file.md)** - Code review and optimization
+- **[`prompts/simplify_code.md`](prompts/simplify_code.md)** - Refactoring and cleanup
 
-# Restart after code changes
-docker compose restart bot
+### Example AI Workflow
 ```
+1. Use template → customize with prompts/START.md
+2. Add features → follow prompts/add_feature.md  
+3. Code review → use prompts/analyze_file.md
+4. Optimize → apply prompts/simplify_code.md
+5. Deploy → git push origin main
+```
+
+### Bot Evolution System
+- **HB-001**: Your first bot from this template
+- **HB-002**: Evolved version with new features
+- **HB-003**: Advanced bot with specialized functionality
+- Track genealogy in README for systematic development
 
 ## Features
 
@@ -101,14 +125,30 @@ Development Mode          Production Mode (Shared PostgreSQL)
          └───────────────────┘
 ```
 
-## Technology Stack
+## 🛠️ Technology Stack
 
-- **Python 3.12+** with type hints
-- **aiogram 3.0+** for Telegram Bot API
-- **SQLAlchemy 2.0** async + PostgreSQL
-- **Docker Compose** for containerization
-- **GitHub Actions** for CI/CD
-- **Direct schema creation** with SQLAlchemy
+### Core Dependencies
+- **[aiogram](https://docs.aiogram.dev/)** - Modern async Telegram Bot API framework
+- **[SQLAlchemy](https://docs.sqlalchemy.org/)** - Async PostgreSQL ORM with type safety
+- **[FastAPI](https://fastapi.tiangolo.com/)** - High-performance webhook server
+- **[Pydantic](https://docs.pydantic.dev/)** - Data validation and settings management
+- **[uvicorn](https://www.uvicorn.org/)** - Lightning-fast ASGI server
+
+### Development Tools  
+- **[uv](https://docs.astral.sh/uv/)** - Ultra-fast Python package manager
+- **[ruff](https://docs.astral.sh/ruff/)** - Extremely fast Python linter and formatter
+- **[pytest](https://docs.pytest.org/)** - Testing framework with async support
+
+### Infrastructure
+- **[Docker](https://docs.docker.com/)** - Containerization for consistent environments
+- **[PostgreSQL](https://www.postgresql.org/docs/)** - Reliable, powerful database
+- **[GitHub Actions](https://docs.github.com/en/actions)** - CI/CD automation
+
+### Performance Optimizations
+- **[uvloop](https://github.com/MagicStack/uvloop)** - Ultra-fast asyncio event loop
+- **[asyncpg](https://magicstack.github.io/asyncpg/)** - High-performance PostgreSQL driver
+
+*Full technology reference: [`docs/TECHNOLOGIES.md`](docs/TECHNOLOGIES.md)*
 
 ## Commands
 
@@ -145,22 +185,57 @@ DEBUG=true                          # true/false
 WEBHOOK_URL=https://domain.com/webhook  # Optional for production
 ```
 
-## Development Commands
+## 🔧 Development Setup
+
+### VS Code + Cursor Setup
+This template includes optimized settings for AI-assisted development:
+
+**Recommended Extensions:**
+```
+charliermarsh.ruff                    # Python linting/formatting
+ms-python.python                     # Python support
+anthropic.claude-code                 # Claude AI integration  
+anysphere.cursorpyright              # Enhanced Python typing
+ms-azuretools.vscode-docker          # Docker support
+github.vscode-github-actions         # GitHub Actions support
+mikestead.dotenv                     # .env file support
+yzhang.markdown-all-in-one           # Markdown editing
+```
+
+**Auto-configuration included:**
+- `.vscode/settings.json` - Optimized editor settings
+- `.vscode/tasks.json` - Pre-configured development tasks
+- `.cursorrules` - Cursor AI context and instructions
+
+### Development Commands
 
 ```bash
-# Local development (simplified)
-docker compose -f docker-compose.dev.yml up     # Start development
-docker compose -f docker-compose.dev.yml down   # Stop development
-# OR use simplified script:
-./scripts/start_dev_simple.sh    # Start with hot reload
+# Environment setup
+uv sync                               # Install dependencies
 
-# Code quality
-uv run ruff format .              # Format code
-uv run ruff check . --fix         # Lint code
+# Development
+docker compose -f docker-compose.dev.yml up -d    # Start with hot reload
+docker compose -f docker-compose.dev.yml logs -f bot-dev  # View logs
 
-# Database
-# Database tables are created automatically on bot startup
+# Code quality  
+uv run ruff format .                  # Format code
+uv run ruff check . --fix             # Lint and fix issues
+uv run pytest tests/ -v               # Run tests
+
+# VS Code tasks (Ctrl+Shift+P → "Tasks: Run Task")
+🚀 Start Dev Environment             # Clean development startup
+🧪 Run Tests                         # Execute test suite  
+🔧 Format & Lint Code                # Code quality check
+✅ Full Quality Check                 # Complete CI/CD simulation
 ```
+
+### Local Development Workflow
+
+1. **Setup**: `uv sync` → `cp .env.example .env` → add bot token
+2. **Start**: Use VS Code task "🚀 Start Dev Environment" or `docker compose -f docker-compose.dev.yml up -d`
+3. **Code**: Edit files → auto-reload → test changes immediately
+4. **Quality**: Use "🔧 Format & Lint Code" task before commits
+5. **Deploy**: `git push origin main` → auto-deploy to VPS
 
 ## License
 

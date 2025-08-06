@@ -1,14 +1,115 @@
 {
+    // Python settings
     "python.defaultInterpreterPath": "./.venv/bin/python",
     "python.terminal.activateEnvironment": true,
-    "python.analysis.extraPaths": [
-        "./app"
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll.ruff": "explicit",
+            "source.organizeImports.ruff": "explicit"
+        }
+    },
+
+    // Editor settings optimized for AI collaboration
+    "editor.fontFamily": "JetBrains Mono, Dank Mono, Fira Code, Consolas, monospace",
+    "editor.fontSize": 14,
+    "editor.fontLigatures": true,
+    "editor.tabSize": 4,
+    "editor.formatOnSave": false,
+    "editor.codeLens": false,
+    "editor.lineNumbers": "on",
+    "editor.snippetSuggestions": "top",
+    "editor.guides.indentation": false,
+    "editor.minimap.enabled": false,
+    "editor.linkedEditing": true,
+    "editor.inlineSuggest.enabled": true,
+    "editor.accessibilitySupport": "off",
+    "editor.renderWhitespace": "none",
+    "editor.renderControlCharacters": false,
+
+    // Workbench settings
+    "workbench.startupEditor": "none",
+    "workbench.editor.highlightModifiedTabs": true,
+    "workbench.editor.restoreViewState": false,
+    "workbench.editor.revealIfOpen": true,
+    "workbench.editor.enablePreview": false,
+    "workbench.tree.renderIndentGuides": "none",
+    "workbench.tree.expandMode": "singleClick",
+    "workbench.tips.enabled": false,
+    "workbench.settings.editor": "json",
+    "workbench.colorTheme": "One Dark Pro",
+    "workbench.iconTheme": "material-icon-theme",
+
+    // Explorer settings
+    "explorer.sortOrder": "type",
+    "explorer.autoReveal": false,
+    "explorer.confirmDelete": false,
+
+    // Search settings
+    "search.defaultViewMode": "tree",
+    "search.exclude": {
+        "**/.git": true,
+        "**/node_modules": true,
+        "**/build": true,
+        "**/dist": true,
+        "**/__pycache__": true,
+        "**/.pytest_cache": true,
+        "**/venv": true,
+        "**/.venv": true
+    },
+
+    // Git settings
+    "git.enableSmartCommit": true,
+    "git.confirmSync": false,
+    "git.openRepositoryInParentFolders": "never",
+    "scm.showIncomingChanges": "never",
+    "scm.showOutgoingChanges": "never",
+    "scm.showHistoryGraph": false,
+
+    // File associations
+    "files.associations": {
+        "*.env*": "dotenv",
+        "docker-compose*.yml": "dockercompose",
+        "Dockerfile*": "dockerfile"
+    },
+
+    // Language-specific settings
+    "[markdown]": {
+        "editor.defaultFormatter": "yzhang.markdown-all-in-one",
+        "editor.wordWrap": "on"
+    },
+    "[json]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[yaml]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[dockerfile]": {
+        "editor.defaultFormatter": "ms-azuretools.vscode-docker"
+    },
+
+    // Extension-specific settings
+    "material-icon-theme.hidesExplorerArrows": true,
+    "material-icon-theme.folders.theme": "classic",
+    "material-icon-theme.activeIconPack": "nest",
+    
+    // Spell checker
+    "cSpell.language": "en,ru",
+    "cSpell.userWords": [
+        "aiogram",
+        "asyncpg", 
+        "fastapi",
+        "pydantic",
+        "sqlalchemy",
+        "uvicorn",
+        "uvloop"
     ],
-    "cSpell.words": [
-        "ADMINER",
-        "botfather",
-        "dockerhub",
-        "mypy",
-        "newbot"
-    ]
+
+    // Docker extension
+    "docker.showStartPage": false,
+
+    // Terminal settings
+    "terminal.integrated.defaultProfile.osx": "zsh",
+    "terminal.integrated.fontFamily": "JetBrains Mono, Menlo, monospace"
 }
