@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "telegram-bot-template"
-version = "2.1.0"
-description = "Simple Telegram bot template with clean architecture (~320 lines total)"
+version = "3.0.0"
+description = "Production-ready Telegram bot template optimized for AI-assisted development (~335 lines total)"
 requires-python = ">=3.12"
 
 dependencies = [

@@ -1080,7 +1080,7 @@ wheels = [
 
 [[package]]
 name = "telegram-bot-template"
-version = "2.1.0"
+version = "3.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiogram" },
